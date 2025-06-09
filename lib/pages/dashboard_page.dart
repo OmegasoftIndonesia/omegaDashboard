@@ -13,6 +13,7 @@ import '../utils/shared_prefs.dart';
 import '../widgets/custom_button.dart';
 import '../constants/constants.dart';
 import '../widgets/custom_container.dart';
+import '../widgets/custom_container_dashboard2.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/custom_text_form_field_date.dart';
 
@@ -56,6 +57,7 @@ class _DashboardPageState extends State<DashboardPage>
       avgSalesPerTransaction = FormatRupiah.convertToIdr(0, 0),
       avgSalesPerTransactionPOS = FormatRupiah.convertToIdr(0, 0),
       avgSalesPerTransactionInvoice = FormatRupiah.convertToIdr(0, 0),
+      cash = FormatRupiah.convertToIdr(0, 0),
       netProfit = FormatRupiah.convertToIdr(0, 0);
   QueryBranchResponse? dropdownValueBranch;
   List<QueryBranchResponse> itemBranches = [];
@@ -140,11 +142,14 @@ class _DashboardPageState extends State<DashboardPage>
               response.where((element) => element.kode == "Q016").single;
           DashboardQueryResponse q017 =
               response.where((element) => element.kode == "Q017").single;
-
+          DashboardQueryResponse q02 =
+              response.where((element) => element.kode == "Q02").single;
           avgSalesPerTransactionPOS =
               FormatRupiah.convertToIdr(q017.nilai3 ?? 0, 0);
           avgSalesPerTransactionInvoice =
               FormatRupiah.convertToIdr(q016.nilai3 ?? 0, 0);
+
+          cash = FormatRupiah.convertToIdr(q02.nilai1 ?? 0, 0);
 
           grandTotalSalesPOS =
               FormatRupiah.convertToIdr(q017.grandtotalsales ?? 0, 0);
@@ -541,6 +546,9 @@ class _DashboardPageState extends State<DashboardPage>
                             nominal: avgSalesPerTransaction,
                             title: "AVG SALES PER TRANSACTION",
                           ),
+                          CustomContainerDashboard2(
+                            cash: cash,
+                          ),
                           if (isSubmittedForNetProfit)
                             CustomContainerDashboard(
                               nominal: netProfit,
@@ -549,53 +557,61 @@ class _DashboardPageState extends State<DashboardPage>
                         ],
                       ),
                     ),
-                    Column(
-                      children: [
-                        CustomContainerDashboard(
-                          nominal: grossSalesPOS,
-                          title: "GROSS SALES POS",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: netSalesPOS,
-                          title: "NET SALES POS",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: grandTotalSalesPOS,
-                          title: "GRAND TOTAL SALES POS",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: numberOfTransactionPOS,
-                          title: "NUMBER OF TRANSACTION POS",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: avgSalesPerTransactionPOS,
-                          title: "AVG SALES PER TRANSACTION POS",
-                        )
-                      ],
+                    SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          CustomContainerDashboard(
+                            nominal: grossSalesPOS,
+                            title: "GROSS SALES POS",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: netSalesPOS,
+                            title: "NET SALES POS",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: grandTotalSalesPOS,
+                            title: "GRAND TOTAL SALES POS",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: numberOfTransactionPOS,
+                            title: "NUMBER OF TRANSACTION POS",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: avgSalesPerTransactionPOS,
+                            title: "AVG SALES PER TRANSACTION POS",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: avgSalesPerTransactionPOS,
+                            title: "AVG SALES PER TRANSACTION POS",
+                          )
+                        ],
+                      ),
                     ),
-                    Column(
-                      children: [
-                        CustomContainerDashboard(
-                          nominal: grossSalesInvoice,
-                          title: "GROSS SALES INVOICE",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: netSalesInvoice,
-                          title: "NET SALES INVOICE",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: grandTotalSalesInvoice,
-                          title: "GRAND TOTAL SALES INVOICE",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: numberOfTransactionInvoice,
-                          title: "NUMBER OF TRANSACTION INVOICE",
-                        ),
-                        CustomContainerDashboard(
-                          nominal: avgSalesPerTransactionInvoice,
-                          title: "AVG SALES PER TRANSACTION INVOICE",
-                        )
-                      ],
+                    SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          CustomContainerDashboard(
+                            nominal: grossSalesInvoice,
+                            title: "GROSS SALES INVOICE",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: netSalesInvoice,
+                            title: "NET SALES INVOICE",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: grandTotalSalesInvoice,
+                            title: "GRAND TOTAL SALES INVOICE",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: numberOfTransactionInvoice,
+                            title: "NUMBER OF TRANSACTION INVOICE",
+                          ),
+                          CustomContainerDashboard(
+                            nominal: avgSalesPerTransactionInvoice,
+                            title: "AVG SALES PER TRANSACTION INVOICE",
+                          )
+                        ],
+                      ),
                     )
                   ],
                 ),

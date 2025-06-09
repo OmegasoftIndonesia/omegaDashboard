@@ -6,6 +6,7 @@ class PreferencesUtil {
   static const String email = "email";
   static const String kodestaff = "kodestaff";
   static const String branch = "branch";
+  static const String cabang = "cabang";
 
   static Future<PreferencesUtil?> getInstance() async {
     manager ??= PreferencesUtil();

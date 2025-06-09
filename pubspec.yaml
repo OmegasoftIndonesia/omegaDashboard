@@ -45,6 +45,7 @@ dependencies:
   label_marker: ^1.0.1
   upgrader: ^9.0.0
   flutter_datetime_picker_plus: ^2.1.0
+  syncfusion_flutter_charts: ^29.2.9
 
 dev_dependencies:
   flutter_test:

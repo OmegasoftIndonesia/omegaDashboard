@@ -18,6 +18,8 @@ class TrackingRepository {
       TrackingRequest request = TrackingRequest();
       request.token = Constants.appToken;
       request.branch = util.getString(PreferencesUtil.branch);
+      request.pilihanbranch="";
+
 
       dio.options.contentType = "application/x-www-form-urlencoded";
       Response response = await dio.post(UrlConstants.trackingGetBranch,

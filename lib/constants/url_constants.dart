@@ -7,4 +7,5 @@ class UrlConstants {
   static const trackingGetStaff = "https://api-prod.omegasoft.co.id/v1/apinew/getStaff";
   static const trackingGetStaffPosition = "https://api-prod.omegasoft.co.id/v1/apinew/getStaffPosition";
   static const trackingGetStaffPositionHistory = "https://api-prod.omegasoft.co.id/v1/apinew/getStaffPositionHistory";
+  static const dashboardAPI = "https://api-prod.omegasoft.co.id/v1/reportlist/Dashboard";
 }

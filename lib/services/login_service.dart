@@ -14,6 +14,8 @@ class LoginService {
         util.putString(PreferencesUtil.kodestaff, response[0].kodestaff!);
         util.putString(
             PreferencesUtil.branch, response[0].kodestaff!.substring(0, 5));
+        util.putString(
+            PreferencesUtil.cabang, response[0].kodestaff!.substring(0, 5));
       }
       return response;
     } catch (e) {

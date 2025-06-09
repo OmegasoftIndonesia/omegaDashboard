@@ -50,10 +50,11 @@ class _TrackingHistoryPageState extends State<TrackingHistoryPage> {
     List<LatLng> polylineCoordinates = [];
 
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      googleAPiKey,
-      PointLatLng(startLocation.latitude, startLocation.longitude),
-      PointLatLng(endLocation.latitude, endLocation.longitude),
-      travelMode: TravelMode.driving,
+      googleApiKey: googleAPiKey,
+      request: PolylineRequest(
+          origin: PointLatLng(startLocation.latitude, startLocation.longitude),
+          destination: PointLatLng(endLocation.latitude, endLocation.longitude),
+          mode: TravelMode.driving),
     );
 
     if (result.points.isNotEmpty) {
