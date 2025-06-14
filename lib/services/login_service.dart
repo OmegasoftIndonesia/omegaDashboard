@@ -14,8 +14,9 @@ class LoginService {
         util.putString(PreferencesUtil.kodestaff, response[0].kodestaff!);
         util.putString(
             PreferencesUtil.branch, response[0].kodestaff!.substring(0, 5));
+        print("cabang: ${response[0].kodestaff!.substring(0, 8)}");
         util.putString(
-            PreferencesUtil.cabang, response[0].kodestaff!.substring(0, 5));
+            PreferencesUtil.cabang, response[0].kodestaff!.substring(0, 8));
       }
       return response;
     } catch (e) {

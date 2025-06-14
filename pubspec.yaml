@@ -46,6 +46,7 @@ dependencies:
   upgrader: ^9.0.0
   flutter_datetime_picker_plus: ^2.1.0
   syncfusion_flutter_charts: ^29.2.9
+  carousel_slider: ^5.1.1
 
 dev_dependencies:
   flutter_test:

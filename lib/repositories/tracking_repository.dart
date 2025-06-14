@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:omega_dashboard/models/responses/UpdateKategoriResponse.dart';
+import '../models/requests/UpdateKategoriRequest.dart';
 import '../models/responses/get_staff_position_history_response.dart';
 import '../models/responses/get_staff_position_response.dart';
 import '../models/responses/get_branch_kc_response.dart';
@@ -26,6 +28,24 @@ class TrackingRepository {
           data: request.toJson());
 
       return GetBranchKCResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<UpdateKategoriResponse> updatekategori(String targetOmzet,cabang) async {
+    try {
+      UpdateKategoriRequest request = UpdateKategoriRequest();
+      request.token = Constants.appToken;
+      request.targetomzetbulan = targetOmzet;
+      request.cabang= cabang;
+
+
+      dio.options.contentType = "application/json";
+      Response response = await dio.post(UrlConstants.UpdateKategori,
+          data: request.toJson());
+
+      return UpdateKategoriResponse.fromJson(response.data);
     } catch (e) {
       rethrow;
     }

@@ -1,7 +1,13 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
+import 'package:omega_dashboard/models/CircularData.dart';
+import 'package:omega_dashboard/models/SalesDataWeekly.dart';
+import 'package:omega_dashboard/models/requests/dashboardRequest.dart';
+import 'package:omega_dashboard/models/responses/getBranchfromEmailResponse.dart';
+import 'package:omega_dashboard/widgets/custom_graphic.dart';
 import 'package:upgrader/upgrader.dart';
 import '../models/responses/dashboard_query_response.dart';
 import '../utils/format_rupiah.dart';
@@ -14,6 +20,7 @@ import '../widgets/custom_button.dart';
 import '../constants/constants.dart';
 import '../widgets/custom_container.dart';
 import '../widgets/custom_container_dashboard2.dart';
+import '../widgets/custom_dashboard_dashboard3.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/custom_text_form_field_date.dart';
 
@@ -58,10 +65,31 @@ class _DashboardPageState extends State<DashboardPage>
       avgSalesPerTransactionPOS = FormatRupiah.convertToIdr(0, 0),
       avgSalesPerTransactionInvoice = FormatRupiah.convertToIdr(0, 0),
       cash = FormatRupiah.convertToIdr(0, 0),
+      kredit = FormatRupiah.convertToIdr(0, 0),
+      debit = FormatRupiah.convertToIdr(0, 0),
+      merchantPay = FormatRupiah.convertToIdr(0, 0),
       netProfit = FormatRupiah.convertToIdr(0, 0);
-  QueryBranchResponse? dropdownValueBranch;
-  List<QueryBranchResponse> itemBranches = [];
-  Future<List<QueryBranchResponse>>? fGetBranch;
+  List<SalesDataWeekly> salesData = [];
+  List<SalesDataWeekly> salesDataHourly = [];
+  List<SalesDataWeekly> netSalesVsInventoryData = [];
+  List<SalesDataWeekly> belowMinimumStock = [];
+  List<CircularData> dataMostSelling = [];
+  List<CircularData> dataMostSellingProduct = [];
+  List<CircularData> dataMostSellingService = [];
+  List<CircularData> dataMostCategory = [];
+  List<CircularData> dataMostActive = [];
+  List<Widget> Staffname = [];
+  List<Widget> Staffsales = [];
+  List<Widget> titles = [];
+  List<Widget> values = [];
+  List<Widget> titlesGrossSales = [];
+  List<Widget> valuesGrossSales = [];
+  List<Widget> titlesAVGPurhcase = [];
+  List<Widget> valuesAVGPurchase = [];
+  DataBranch? dropdownValueBranch;
+  List<DataBranch> itemBranches = [];
+  Future<getBranchfromEmailResponse>? fGetBranch;
+
   var itemsTimeFrames = [
     'Today',
     'Yesterday',
@@ -77,9 +105,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   void initState() {
-    fGetBranch = queryService.getBranch(
-      QueryDashboard.getBranchesQuery(util.getString(PreferencesUtil.email)!),
-    );
+    fGetBranch = queryService.getBranchAPI();
 
     tabController = TabController(length: 3, vsync: this);
     tabController.addListener(() {
@@ -106,76 +132,476 @@ class _DashboardPageState extends State<DashboardPage>
         status: 'loading...',
         dismissOnTap: false,
         maskType: EasyLoadingMaskType.black);
+
     await queryService
-        .getDashboardQuery(QueryDashboard.dashBoardQuery(
+        .getDashboardData(
+            dropdownValueTimeFrame!,
             dropdownValueBranch!.cabang!.substring(0, 5),
             dropdownValueBranch!.cabang!,
-            dropdownValueTimeFrame,
             startDate!,
-            endDate!))
-        .then((response) {
+            endDate!)
+        .then((onValue) {
       EasyLoading.dismiss();
-      if (response.isNotEmpty) {
-        setState(() {
-          grossSales = FormatRupiah.convertToIdr(response[0].nilai1, 0);
-          netSales = FormatRupiah.convertToIdr(response[0].netsales, 0);
-          grandTotalSales =
-              FormatRupiah.convertToIdr(response[0].grandtotalsales, 0);
-          retur = FormatRupiah.convertToIdr(response[0].returSales, 0);
-          grandTotalSalesMinusRetur = FormatRupiah.convertToIdr(
-              response[0].grandTotalSalesMinusReturSales, 0);
-          numberOfTransaction = response[0].nilai2.toString();
-          avgSalesPerTransaction =
-              FormatRupiah.convertToIdr(response[0].nilai3, 0);
-
-          if (dropdownValueTimeFrame == 'This Month' ||
-              dropdownValueTimeFrame == 'Last Month') {
-            DashboardQueryResponse q020 =
-                response.where((element) => element.kode == "Q020").single;
-            netProfit = FormatRupiah.convertToIdr(q020.nilai1, 0);
-            isSubmittedForNetProfit = true;
-          } else {
-            isSubmittedForNetProfit = false;
+      if (onValue.status!.toLowerCase() == "success") {
+        salesData.clear();
+        salesDataHourly.clear();
+        Staffname.clear();
+        Staffsales.clear();
+        titlesGrossSales.clear();
+        valuesGrossSales.clear();
+        titles.clear();
+        values.clear();
+        titlesAVGPurhcase.clear();
+        valuesAVGPurchase.clear();
+        dataMostSelling.clear();
+        dataMostSellingProduct.clear();
+        dataMostSellingService.clear();
+        dataMostCategory.clear();
+        dataMostActive.clear();
+        for (var data in onValue.data!) {
+          if (data.kode!.toLowerCase().contains("q001")) {
+            grossSales = FormatRupiah.convertToIdr(
+                double.parse(data.nilai1!).toInt(), 0);
+            netSales = FormatRupiah.convertToIdr(
+                double.parse(data.netsales!).toInt(), 0);
+            grandTotalSales = FormatRupiah.convertToIdr(
+                double.parse(data.grandtotalsales!).toInt(), 0);
+            retur = FormatRupiah.convertToIdr(
+                double.parse(data.returSales!).toInt(), 0);
+            grandTotalSalesMinusRetur = FormatRupiah.convertToIdr(
+                double.parse(data.grandTotalSalesMinusReturSales!).toInt(), 0);
+            numberOfTransaction = data.nilai2.toString();
+            avgSalesPerTransaction = FormatRupiah.convertToIdr(
+                double.parse(data.nilai3!).toInt(), 0);
           }
 
-          DashboardQueryResponse q016 =
-              response.where((element) => element.kode == "Q016").single;
-          DashboardQueryResponse q017 =
-              response.where((element) => element.kode == "Q017").single;
-          DashboardQueryResponse q02 =
-              response.where((element) => element.kode == "Q02").single;
-          avgSalesPerTransactionPOS =
-              FormatRupiah.convertToIdr(q017.nilai3 ?? 0, 0);
-          avgSalesPerTransactionInvoice =
-              FormatRupiah.convertToIdr(q016.nilai3 ?? 0, 0);
+          if (data.kode!.toLowerCase().contains("q020")) {
+            if (dropdownValueTimeFrame == 'This Month' ||
+                dropdownValueTimeFrame == 'Last Month') {
+              netProfit = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1 ?? "0").toInt(), 0);
+              isSubmittedForNetProfit = true;
+            } else {
+              isSubmittedForNetProfit = false;
+            }
+          }
 
-          cash = FormatRupiah.convertToIdr(q02.nilai1 ?? 0, 0);
+          if (data.kode!.toLowerCase().contains("q016")) {
+            avgSalesPerTransactionInvoice = FormatRupiah.convertToIdr(
+                double.parse(data.nilai3 ?? "0").toInt(), 0);
+            grandTotalSalesInvoice = FormatRupiah.convertToIdr(
+                double.parse(data.grandtotalsales!).toInt(), 0);
+            numberOfTransactionInvoice = data.nilai2.toString();
+            grossSalesInvoice = FormatRupiah.convertToIdr(
+                double.parse(data.nilai1!).toInt(), 0);
+            netSalesInvoice = FormatRupiah.convertToIdr(
+                double.parse(data.netsales ?? "0").toInt(), 0);
+          }
 
-          grandTotalSalesPOS =
-              FormatRupiah.convertToIdr(q017.grandtotalsales ?? 0, 0);
-          grandTotalSalesInvoice =
-              FormatRupiah.convertToIdr(q016.grandtotalsales ?? 0, 0);
+          if (data.kode!.toLowerCase().contains("q017")) {
+            avgSalesPerTransactionPOS = FormatRupiah.convertToIdr(
+                double.parse(data.nilai3!).toInt(), 0);
+            grandTotalSalesPOS = FormatRupiah.convertToIdr(
+                double.parse(data.grandtotalsales!).toInt(), 0);
+            numberOfTransactionPOS = data.nilai2.toString();
+            grossSalesPOS = FormatRupiah.convertToIdr(
+                double.parse(data.nilai1!).toInt(), 0);
+            netSalesPOS = FormatRupiah.convertToIdr(
+                double.parse(data.netsales!).toInt(), 0);
+          }
 
-          numberOfTransactionPOS = q017.nilai2.toString();
-          numberOfTransactionInvoice = q016.nilai2.toString();
+          if (data.kode!.toLowerCase().contains("q002")) {
+            if (data.kodeket!.toLowerCase().contains("tunai")) {
+              cash = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1!).toInt(), 0);
+            }
+            if (data.kodeket!.toLowerCase().contains("kartu kredit")) {
+              kredit = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1!).toInt(), 0);
+            }
+            if (data.kodeket!.toLowerCase().contains("kartu debit")) {
+              debit = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1!).toInt(), 0);
+            }
+            if (data.kodeket!.toLowerCase().contains("merchant pay")) {
+              merchantPay = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1!).toInt(), 0);
+            }
+          }
 
-          grossSalesPOS = FormatRupiah.convertToIdr(q017.nilai1, 0);
-          grossSalesInvoice = FormatRupiah.convertToIdr(q016.nilai1, 0);
+          if (data.kode!.toLowerCase().contains("q010")) {
+            String day = (double.parse(data.nilai2!).toInt().toString() == "1")
+                ? "Sun"
+                : (double.parse(data.nilai2!).toInt().toString() == "2")
+                    ? "Mon"
+                    : (double.parse(data.nilai2!).toInt().toString() == "3")
+                        ? "Tue"
+                        : (double.parse(data.nilai2!).toInt().toString() == "4")
+                            ? "Wed"
+                            : (double.parse(data.nilai2!).toInt().toString() ==
+                                    "5")
+                                ? "Thu"
+                                : (double.parse(data.nilai2!)
+                                            .toInt()
+                                            .toString() ==
+                                        "6")
+                                    ? "Fri"
+                                    : "Sat";
 
-          netSalesPOS = FormatRupiah.convertToIdr(q017.netsales, 0);
-          netSalesInvoice = FormatRupiah.convertToIdr(q016.netsales, 0);
-        });
-      } else {
-        EasyLoading.showError("No data found.",
-            maskType: EasyLoadingMaskType.black);
+            salesData
+                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
+          }
+
+          if (data.kode!.toLowerCase().contains("q011")) {
+            String day = "${double.parse(data.nilai2!).toInt().toString()}:00";
+
+            salesDataHourly
+                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
+          }
+          if (data.kode!.toLowerCase().contains("q015")) {
+            String day = "${data.keterangan}";
+
+            netSalesVsInventoryData
+                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
+          }
+          if (data.kode!.toLowerCase().contains("q013")) {
+            Staffname.add(SizedBox(
+              width: 120,
+              child: Text(
+                data.keterangan!.toUpperCase(),
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            Staffsales.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+          }
+
+          if (data.kode!.toLowerCase().contains("q003")) {
+            titles.add(SizedBox(
+              width: 120,
+              child: Text(
+                "WEEKEND TYPE",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            titles.add(SizedBox(
+              width: 120,
+              child: Text(
+                DateFormat("dd MMM (EEE)").format(DateTime.now()),
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            titles.add(SizedBox(
+              width: 120,
+              child: Text(
+                "AVG WEEKEND",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            titles.add(SizedBox(
+              width: 120,
+              child: Text(
+                "AVG WEEKDAY",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+            values.add(Text(
+              "Saturday, Sunday",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+            values.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+            values.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+            values.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+          }
+
+          if (data.kode!.toLowerCase().contains("q004")) {
+
+            titlesGrossSales.add(SizedBox(
+              width: 120,
+              child: Text(
+                "SALES GOALS",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            titlesGrossSales.add(SizedBox(
+              width: 120,
+              child: Text(
+                "1 - ${DateFormat("dd MMM (EEE)").format(DateTime.now())}",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            titlesGrossSales.add(SizedBox(
+              width: 120,
+              child: Text(
+                "AVG PER MONTH",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+
+            valuesGrossSales.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0).toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+            valuesGrossSales.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+            valuesGrossSales.add(Text(
+              FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
+                  .toString(),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ));
+          }
+
+          if (data.kode!.toLowerCase().contains("q005")) {
+            titlesAVGPurhcase.add(SizedBox(
+              width: 120,
+              child: Text(
+                "TODAY",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+            titlesAVGPurhcase.add(SizedBox(
+              width: 120,
+              child: Text(
+                "AVERAGE",
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+            valuesAVGPurchase.add(SizedBox(
+              width: 120,
+              child: Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                    .toString(),
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+            valuesAVGPurchase.add(SizedBox(
+              width: 120,
+              child: Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
+                    .toString(),
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+            ));
+          }
+
+          if (data.kode!.toLowerCase().contains("q008")) {
+            final Random random = Random();
+            dataMostSelling.add(CircularData(
+              data.keterangan!,
+              double.parse(data.nilai1!),
+              double.parse(data.nilai2!),
+            ));
+            CustomGraphicState.tempCircularData = dataMostSelling.toList();
+          }
+
+          if (data.kode!.toLowerCase().contains("q009")) {
+            final Random random = Random();
+            dataMostCategory.add(CircularData(
+                data.keterangan!,
+                double.parse(data.nilai1!),
+                double.parse(data.nilai2!)));
+          }
+
+          if (data.kode!.toLowerCase().contains("q006")) {
+            final Random random = Random();
+            dataMostActive.add(CircularData(
+                data.keterangan!,
+                double.parse(data.nilai1!),
+                double.parse(data.nilai2!)));
+          }
+
+          if (data.kode!.toLowerCase().contains("q018")) {
+            final Random random = Random();
+            dataMostSellingProduct.add(CircularData(
+                data.keterangan!,
+                double.parse(data.nilai1!),
+                double.parse(data.nilai2!)));
+            CustomGraphicState.tempCircularDataProduct = dataMostSellingProduct.toList();
+          }
+
+          if (data.kode!.toLowerCase().contains("q019")) {
+            final Random random = Random();
+            dataMostSellingService.add(CircularData(
+                data.keterangan!,
+                double.parse(data.nilai1!),
+                double.parse(data.nilai2!)));
+            CustomGraphicState.tempCircularDataService = dataMostSellingService.toList();
+          }
+
+          if (data.kode!.toLowerCase().contains("q007")) {
+            belowMinimumStock.add(SalesDataWeekly(data.keterangan!,  double.parse(data.nilai1!).toInt()));
+          }
+        }
+        setState(() {});
       }
-    }).catchError((Object e) async {
-      EasyLoading.dismiss();
-
-      EasyLoading.showError(
-          "Something went wrong when getting data, try again later.",
-          maskType: EasyLoadingMaskType.black);
     });
+
+    // await queryService
+    //     .getDashboardQuery(QueryDashboard.dashBoardQuery(
+    //         dropdownValueBranch!.cabang!.substring(0, 5),
+    //         dropdownValueBranch!.cabang!,
+    //         dropdownValueTimeFrame,
+    //         startDate!,
+    //         endDate!))
+    //     .then((response) {
+    //   EasyLoading.dismiss();
+    //   if (response.isNotEmpty) {
+    //     setState(() {
+    //       grossSales = FormatRupiah.convertToIdr(response[0].nilai1, 0);
+    //       netSales = FormatRupiah.convertToIdr(response[0].netsales, 0);
+    //       grandTotalSales =
+    //           FormatRupiah.convertToIdr(response[0].grandtotalsales, 0);
+    //       retur = FormatRupiah.convertToIdr(response[0].returSales, 0);
+    //       grandTotalSalesMinusRetur = FormatRupiah.convertToIdr(
+    //           response[0].grandTotalSalesMinusReturSales, 0);
+    //       numberOfTransaction = response[0].nilai2.toString();
+    //       avgSalesPerTransaction =
+    //           FormatRupiah.convertToIdr(response[0].nilai3, 0);
+    //
+    //       if (dropdownValueTimeFrame == 'This Month' ||
+    //           dropdownValueTimeFrame == 'Last Month') {
+    //         DashboardQueryResponse q020 =
+    //             response.where((element) => element.kode == "Q020").single;
+    //         netProfit = FormatRupiah.convertToIdr(q020.nilai1, 0);
+    //         isSubmittedForNetProfit = true;
+    //       } else {
+    //         isSubmittedForNetProfit = false;
+    //       }
+    //
+    //       DashboardQueryResponse q016 =
+    //           response.where((element) => element.kode == "Q016").single;
+    //       DashboardQueryResponse q017 =
+    //           response.where((element) => element.kode == "Q017").single;
+    //       DashboardQueryResponse q02 =
+    //           response.where((element) => element.kode == "Q02").single;
+    //       avgSalesPerTransactionPOS =
+    //           FormatRupiah.convertToIdr(q017.nilai3 ?? 0, 0);
+    //       avgSalesPerTransactionInvoice =
+    //           FormatRupiah.convertToIdr(q016.nilai3 ?? 0, 0);
+    //
+    //       cash = FormatRupiah.convertToIdr(q02.nilai1 ?? 0, 0);
+    //
+    //       grandTotalSalesPOS =
+    //           FormatRupiah.convertToIdr(q017.grandtotalsales ?? 0, 0);
+    //       grandTotalSalesInvoice =
+    //           FormatRupiah.convertToIdr(q016.grandtotalsales ?? 0, 0);
+    //
+    //       numberOfTransactionPOS = q017.nilai2.toString();
+    //       numberOfTransactionInvoice = q016.nilai2.toString();
+    //
+    //       grossSalesPOS = FormatRupiah.convertToIdr(q017.nilai1, 0);
+    //       grossSalesInvoice = FormatRupiah.convertToIdr(q016.nilai1, 0);
+    //
+    //       netSalesPOS = FormatRupiah.convertToIdr(q017.netsales, 0);
+    //       netSalesInvoice = FormatRupiah.convertToIdr(q016.netsales, 0);
+    //     });
+    //   } else {
+    //     EasyLoading.showError("No data found.",
+    //         maskType: EasyLoadingMaskType.black);
+    //   }
+    // }).catchError((Object e) async {
+    //   EasyLoading.dismiss();
+    //
+    //   EasyLoading.showError(
+    //       "Something went wrong when getting data, try again later.",
+    //       maskType: EasyLoadingMaskType.black);
+    // });
   }
 
   @override
@@ -224,10 +650,7 @@ class _DashboardPageState extends State<DashboardPage>
                 setState(() {
                   dropdownValueBranch = null;
                   dropdownValueTimeFrame = null;
-                  fGetBranch = queryService.getBranch(
-                    QueryDashboard.getBranchesQuery(
-                        util.getString(PreferencesUtil.email)!),
-                  );
+                  fGetBranch = queryService.getBranchAPI();
                 });
               },
               icon: const Icon(Icons.refresh),
@@ -244,7 +667,7 @@ class _DashboardPageState extends State<DashboardPage>
               FutureBuilder(
                 future: fGetBranch,
                 builder: (context,
-                    AsyncSnapshot<List<QueryBranchResponse>> snapshot) {
+                    AsyncSnapshot<getBranchfromEmailResponse> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(
                       height: 150,
@@ -257,8 +680,8 @@ class _DashboardPageState extends State<DashboardPage>
                   } else if (snapshot.connectionState == ConnectionState.done) {
                     if (snapshot.hasData) {
                       var dataBranch = snapshot.data;
-                      itemBranches = dataBranch!;
-                      if (dataBranch.isEmpty) {
+                      itemBranches = dataBranch!.data!;
+                      if (dataBranch.data!.isEmpty) {
                         return const SizedBox(
                           height: 150,
                           child: Center(
@@ -290,7 +713,7 @@ class _DashboardPageState extends State<DashboardPage>
                                   ),
                                   width:
                                       MediaQuery.of(context).size.width * 0.5,
-                                  child: DropdownButton<QueryBranchResponse>(
+                                  child: DropdownButton<DataBranch>(
                                     hint: const Text(
                                       "Choose a branch",
                                       style: TextStyle(color: Colors.white),
@@ -548,12 +971,89 @@ class _DashboardPageState extends State<DashboardPage>
                           ),
                           CustomContainerDashboard2(
                             cash: cash,
+                            kredit: kredit,
+                            debit: debit,
+                            merchant: merchantPay,
                           ),
-                          if (isSubmittedForNetProfit)
-                            CustomContainerDashboard(
-                              nominal: netProfit,
-                              title: "NET PROFIT",
-                            ),
+                          (isSubmittedForNetProfit)
+                              ? CustomContainerDashboard(
+                                  nominal: netProfit,
+                                  title: "NET PROFIT",
+                                )
+                              : SizedBox(),
+                          CustomGraphic(
+                            title: "Day of the week gross sales amount",
+                            color: Colors.red,
+                            graphtype: "dayofweeksales",
+                            data: salesData,
+                            dataCircular: [],
+                          ),
+                          CustomGraphic(
+                            title: "hourly gross sales amount",
+                            color: Colors.green,
+                            graphtype: "hourlySales",
+                            data: salesDataHourly,
+                            dataCircular: [],
+                          ),
+                          CustomGraphic(
+                            title: "net sales vs inventory value out",
+                            color: Colors.red,
+                            graphtype: "netSalesVsInventory",
+                            data: netSalesVsInventoryData,
+                            dataCircular: [],
+                          ),
+                          CustomContainerDashboard2(
+                            cash: cash,
+                            kredit: kredit,
+                            debit: debit,
+                            merchant: merchantPay,
+                          ),
+                          CustomContainerDashboard3(
+                            staffName: Staffname,
+                            staffSales: Staffsales,
+                            title: "sales per staff",
+                          ),
+                          CustomContainerDashboard3(
+                            staffName: titles,
+                            staffSales: values,
+                            title:
+                                "today vs weekend & weekday gross sales amount",
+                          ),
+                          CustomContainerDashboard3(
+                            staffName: titlesGrossSales,
+                            staffSales: valuesGrossSales,
+                            cabang:(dropdownValueBranch == null)?"": dropdownValueBranch!.cabang,
+                            title:
+                                "gross sales amount until today vs avg permonth",
+                          ),
+                          CustomContainerDashboard3(
+                            staffName: titlesAVGPurhcase,
+                            staffSales: valuesAVGPurchase,
+                            title: "Average Purchase of Customer each day",
+                          ),
+                          CustomGraphic(
+                            title: "Most Selling items",
+                            graphtype: "mostsellingitem",
+                            dataCircular: dataMostSelling,
+                            dataCircularProduct: dataMostSellingProduct,
+                            dataCircularService: dataMostSellingService,
+                          ),
+                          CustomGraphic(
+                            title: "Most Selling Category",
+                            graphtype: "mostselling",
+                            dataCircular: dataMostCategory,
+                          ),
+                          CustomGraphic(
+                            title: "Most Active Customers",
+                            graphtype: "mostselling",
+                            dataCircular: dataMostActive,
+                          ),
+                          CustomGraphic(
+                            title: "Below Minimum Stock",
+                            graphtype: "Belowminimumstock",
+                            data: belowMinimumStock,
+                            dataCircular: [],
+                          ),
                         ],
                       ),
                     ),

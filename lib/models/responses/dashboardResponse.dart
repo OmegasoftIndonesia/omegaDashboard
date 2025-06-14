@@ -1,7 +1,7 @@
 class dashboardResponse {
   String? status;
   String? message;
-  List<Data>? data;
+  List<DataDahsboard>? data;
 
   dashboardResponse({this.status, this.message, this.data});
 
@@ -9,9 +9,9 @@ class dashboardResponse {
     status = json['status'];
     message = json['message'];
     if (json['data'] != null) {
-      data = <Data>[];
+      data = <DataDahsboard>[];
       json['data'].forEach((v) {
-        data!.add(new Data.fromJson(v));
+        data!.add(new DataDahsboard.fromJson(v));
       });
     }
   }
@@ -27,7 +27,7 @@ class dashboardResponse {
   }
 }
 
-class Data {
+class DataDahsboard {
   String? kode;
   String? kodeket;
   String? keterangan;
@@ -39,7 +39,7 @@ class Data {
   String? returSales;
   String? grandTotalSalesMinusReturSales;
 
-  Data(
+  DataDahsboard(
       {this.kode,
         this.kodeket,
         this.keterangan,
@@ -51,7 +51,7 @@ class Data {
         this.returSales,
         this.grandTotalSalesMinusReturSales});
 
-  Data.fromJson(Map<String, dynamic> json) {
+  DataDahsboard.fromJson(Map<String, dynamic> json) {
     kode = json['kode'];
     kodeket = json['kodeket'];
     keterangan = json['keterangan'];

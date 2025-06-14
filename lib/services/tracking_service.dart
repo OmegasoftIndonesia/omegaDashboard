@@ -1,3 +1,5 @@
+import 'package:omega_dashboard/models/responses/UpdateKategoriResponse.dart';
+
 import '../models/responses/get_staff_position_history_response.dart';
 import '../models/responses/get_staff_position_response.dart';
 import '../models/responses/get_branch_kc_response.dart';
@@ -10,6 +12,14 @@ class TrackingService {
   Future<GetBranchKCResponse> getBranch() async {
     try {
       return await repository.getBranch();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<UpdateKategoriResponse> updateKategori(String targetOmzet, cabang) async {
+    try {
+      return await repository.updatekategori(targetOmzet, cabang);
     } catch (e) {
       rethrow;
     }
