@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'custom_container.dart';
 
@@ -6,8 +8,10 @@ class CustomContainerDashboard2 extends StatefulWidget {
   final String? kredit;
   final String? debit;
   final String? merchant;
+  final String? discountAfterTax;
+  final String? klaim;
   final String? title;
-  const CustomContainerDashboard2({super.key, this.cash, this.debit,this.kredit, this.merchant, this.title});
+  const CustomContainerDashboard2({super.key, this.cash, this.debit,this.kredit, this.merchant, this.klaim,this.discountAfterTax, this.title});
 
   @override
   State<CustomContainerDashboard2> createState() =>
@@ -25,38 +29,54 @@ class _CustomContainerDashboard2State extends State<CustomContainerDashboard2> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            const Column(
+            Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
+                (widget.cash! != "Rp. 0")?Text(
                   "CASH",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                   ),
-                ),
-                Text(
+                ):SizedBox(),
+                (widget.kredit! != "Rp. 0")? Text(
                   "CREDIT CARD",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                   ),
-                ),
-                Text(
+                ):SizedBox(),
+                (widget.debit! != "Rp. 0")? Text(
                   "DEBIT CARD",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                   ),
-                ),
-                Text(
+                ):SizedBox(),
+                (widget.merchant! != "Rp. 0")? Text(
                   "MERCHANT PAY",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                   ),
-                )
+
+                ):SizedBox(),
+                (widget.klaim! != "Rp. 0")?Text(
+                  "KLAIM",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+
+                ):SizedBox(),
+                (widget.discountAfterTax! != "Rp. 0")?Text(
+                  "DISCOUNT AFTER TAX",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ):SizedBox()
               ],
             ),
             SizedBox(
@@ -64,34 +84,48 @@ class _CustomContainerDashboard2State extends State<CustomContainerDashboard2> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  (widget.cash! != "Rp. 0")?Text(
                     widget.cash!,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
-                  ),
-                  Text(
+                  ):SizedBox(),
+                  (widget.kredit! != "Rp. 0")?Text(
                    widget.kredit!,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
-                  ),
-                  Text(
+                  ):SizedBox(),
+                  (widget.debit! != "Rp. 0")?Text(
                     widget.debit!,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
-                  ),
-                  Text(
+                  ):SizedBox(),
+                  (widget.merchant! != "Rp. 0")?Text(
                     widget.merchant!,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
-                  )
+                  ):SizedBox(),
+                  (widget.klaim! != "Rp. 0")?Text(
+                    widget.klaim!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ):SizedBox(),
+                  (widget.discountAfterTax! != "Rp. 0")?Text(
+                    widget.discountAfterTax!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ):SizedBox(),
                 ],
               ),
             ),

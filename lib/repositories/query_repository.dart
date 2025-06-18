@@ -84,7 +84,9 @@ class QueryRepository {
 
       dio.options.contentType = "application/json";
       Response response =
-      await dio.post(UrlConstants.dashboardAPI, data: request.toJson());
+      await dio.post(UrlConstants.dashboardAPI, data: request.toJson(), options: Options(
+        receiveTimeout: const Duration(seconds: 60)
+      ));
 
       return dashboardResponse.fromJson(response.data);
     } catch (e) {

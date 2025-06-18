@@ -5,15 +5,13 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 import 'package:omega_dashboard/models/CircularData.dart';
 import 'package:omega_dashboard/models/SalesDataWeekly.dart';
-import 'package:omega_dashboard/models/requests/dashboardRequest.dart';
 import 'package:omega_dashboard/models/responses/getBranchfromEmailResponse.dart';
 import 'package:omega_dashboard/widgets/custom_graphic.dart';
 import 'package:upgrader/upgrader.dart';
-import '../models/responses/dashboard_query_response.dart';
 import '../utils/format_rupiah.dart';
+import '../widgets/customGraphicCategory.dart';
+import '../widgets/customGraphicCustomer.dart';
 import '../widgets/custom_container_dashboard.dart';
-import '../constants/query_dashboard.dart';
-import '../models/responses/query_branch_response.dart';
 import '../services/query_service.dart';
 import '../utils/shared_prefs.dart';
 import '../widgets/custom_button.dart';
@@ -28,10 +26,10 @@ class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<DashboardPage> createState() => DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage>
+class DashboardPageState extends State<DashboardPage>
     with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
   TextEditingController startDateController = TextEditingController();
@@ -68,7 +66,21 @@ class _DashboardPageState extends State<DashboardPage>
       kredit = FormatRupiah.convertToIdr(0, 0),
       debit = FormatRupiah.convertToIdr(0, 0),
       merchantPay = FormatRupiah.convertToIdr(0, 0),
-      netProfit = FormatRupiah.convertToIdr(0, 0);
+      discountAfterTax = FormatRupiah.convertToIdr(0, 0),
+      klaim = FormatRupiah.convertToIdr(0, 0),
+      netProfit = FormatRupiah.convertToIdr(0, 0),
+  grossSalesProduct = FormatRupiah.convertToIdr(0, 0),
+  grossSalesService = FormatRupiah.convertToIdr(0, 0),
+      grossSalesProductPOS = FormatRupiah.convertToIdr(0, 0),
+      grossSalesServicePOS = FormatRupiah.convertToIdr(0, 0),
+      grossSalesProductInvoice = FormatRupiah.convertToIdr(0, 0),
+      grossSalesServiceInvoice = FormatRupiah.convertToIdr(0, 0),
+      netSalesProduct = FormatRupiah.convertToIdr(0, 0),
+      netSalesService = FormatRupiah.convertToIdr(0, 0),
+      netSalesProductPOS = FormatRupiah.convertToIdr(0, 0),
+      netSalesServicePOS = FormatRupiah.convertToIdr(0, 0),
+      netSalesProductInvoice = FormatRupiah.convertToIdr(0, 0),
+      netSalesServiceInvoice = FormatRupiah.convertToIdr(0, 0);
   List<SalesDataWeekly> salesData = [];
   List<SalesDataWeekly> salesDataHourly = [];
   List<SalesDataWeekly> netSalesVsInventoryData = [];
@@ -133,404 +145,452 @@ class _DashboardPageState extends State<DashboardPage>
         dismissOnTap: false,
         maskType: EasyLoadingMaskType.black);
 
-    await queryService
-        .getDashboardData(
-            dropdownValueTimeFrame!,
-            dropdownValueBranch!.cabang!.substring(0, 5),
-            dropdownValueBranch!.cabang!,
-            startDate!,
-            endDate!)
-        .then((onValue) {
-      EasyLoading.dismiss();
-      if (onValue.status!.toLowerCase() == "success") {
-        salesData.clear();
-        salesDataHourly.clear();
-        Staffname.clear();
-        Staffsales.clear();
-        titlesGrossSales.clear();
-        valuesGrossSales.clear();
-        titles.clear();
-        values.clear();
-        titlesAVGPurhcase.clear();
-        valuesAVGPurchase.clear();
-        dataMostSelling.clear();
-        dataMostSellingProduct.clear();
-        dataMostSellingService.clear();
-        dataMostCategory.clear();
-        dataMostActive.clear();
-        for (var data in onValue.data!) {
-          if (data.kode!.toLowerCase().contains("q001")) {
-            grossSales = FormatRupiah.convertToIdr(
-                double.parse(data.nilai1!).toInt(), 0);
-            netSales = FormatRupiah.convertToIdr(
-                double.parse(data.netsales!).toInt(), 0);
-            grandTotalSales = FormatRupiah.convertToIdr(
-                double.parse(data.grandtotalsales!).toInt(), 0);
-            retur = FormatRupiah.convertToIdr(
-                double.parse(data.returSales!).toInt(), 0);
-            grandTotalSalesMinusRetur = FormatRupiah.convertToIdr(
-                double.parse(data.grandTotalSalesMinusReturSales!).toInt(), 0);
-            numberOfTransaction = data.nilai2.toString();
-            avgSalesPerTransaction = FormatRupiah.convertToIdr(
-                double.parse(data.nilai3!).toInt(), 0);
-          }
+    try{
+      await queryService
+          .getDashboardData(
+          dropdownValueTimeFrame!,
+          dropdownValueBranch!.cabang!.substring(0, 5),
+          dropdownValueBranch!.cabang!,
+          startDate!,
+          endDate!)
+          .then((onValue) {
+        EasyLoading.dismiss();
+        if (onValue.status!.toLowerCase() == "success") {
+          salesData = [];
+          salesDataHourly = [];
+          Staffname = [];
+          Staffsales = [];
+          titlesGrossSales = [];
+          valuesGrossSales = [];
+          netSalesVsInventoryData = [];
+          titles = [];
+          values = [];
+          titlesAVGPurhcase = [];
+          valuesAVGPurchase = [];
+          dataMostSelling = [];
+          dataMostSellingProduct = [];
+          dataMostSellingService = [];
+          dataMostCategory = [];
+          dataMostActive = [];
+          belowMinimumStock = [];
+          cash = FormatRupiah.convertToIdr(0, 0);
+          kredit = FormatRupiah.convertToIdr(0, 0);
+          debit = FormatRupiah.convertToIdr(0, 0);
+          merchantPay = FormatRupiah.convertToIdr(0, 0);
+          for (var data in onValue.data!) {
+            if (data.kode!.toLowerCase().contains("q001")) {
+              grossSales = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1!).toInt(), 0);
+              netSales = FormatRupiah.convertToIdr(
+                  double.parse(data.netsales!).toInt(), 0);
+              grandTotalSales = FormatRupiah.convertToIdr(
+                  double.parse(data.grandtotalsales!).toInt(), 0);
+              retur = FormatRupiah.convertToIdr(
+                  double.parse(data.returSales!).toInt(), 0);
+              grandTotalSalesMinusRetur = FormatRupiah.convertToIdr(
+                  double.parse(data.grandTotalSalesMinusReturSales!).toInt(), 0);
+              numberOfTransaction =
+                  double.parse(data.nilai2.toString()).toInt().toString();
+              avgSalesPerTransaction = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai3!).toInt(), 0);
+            }
 
-          if (data.kode!.toLowerCase().contains("q020")) {
-            if (dropdownValueTimeFrame == 'This Month' ||
-                dropdownValueTimeFrame == 'Last Month') {
-              netProfit = FormatRupiah.convertToIdr(
+            if(data.kode!.toLowerCase().contains("q020")){
+              grossSalesProduct = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai1?? "0").toInt(), 0);
+              grossSalesService = FormatRupiah.convertToIdr(
+                  double.parse(data.grandtotalsales?? "0").toInt(), 0);
+
+              grossSalesProductInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai2 ?? "0").toInt(), 0);
+              grossSalesServiceInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.netsales ?? "0").toInt(), 0);
+
+              grossSalesProductPOS = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai3 ?? "0").toInt(), 0);
+              grossSalesServicePOS = FormatRupiah.convertToIdr(
+                  double.parse(data.returSales?? "0").toInt(), 0);
+            }
+
+            if(data.kode!.toLowerCase().contains("q021")){
+              netSalesProduct = FormatRupiah.convertToIdr(
                   double.parse(data.nilai1 ?? "0").toInt(), 0);
-              isSubmittedForNetProfit = true;
-            } else {
-              isSubmittedForNetProfit = false;
+              netSalesService = FormatRupiah.convertToIdr(
+                  double.parse(data.grandtotalsales ?? "0").toInt(), 0);
+
+              netSalesProductInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai2 ?? "0").toInt(), 0);
+              netSalesServiceInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.netsales ?? "0").toInt(), 0);
+
+              netSalesProductPOS = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai3 ?? "0").toInt(), 0);
+              netSalesServicePOS = FormatRupiah.convertToIdr(
+                  double.parse(data.returSales ?? "0").toInt(), 0);
             }
-          }
 
-          if (data.kode!.toLowerCase().contains("q016")) {
-            avgSalesPerTransactionInvoice = FormatRupiah.convertToIdr(
-                double.parse(data.nilai3 ?? "0").toInt(), 0);
-            grandTotalSalesInvoice = FormatRupiah.convertToIdr(
-                double.parse(data.grandtotalsales!).toInt(), 0);
-            numberOfTransactionInvoice = data.nilai2.toString();
-            grossSalesInvoice = FormatRupiah.convertToIdr(
-                double.parse(data.nilai1!).toInt(), 0);
-            netSalesInvoice = FormatRupiah.convertToIdr(
-                double.parse(data.netsales ?? "0").toInt(), 0);
-          }
+            if (data.kode!.toLowerCase().contains("q020")) {
+              if (dropdownValueTimeFrame == 'This Month' ||
+                  dropdownValueTimeFrame == 'Last Month') {
+                netProfit = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1 ?? "0").toInt(), 0);
+                isSubmittedForNetProfit = true;
+              } else {
+                isSubmittedForNetProfit = false;
+              }
+            }
 
-          if (data.kode!.toLowerCase().contains("q017")) {
-            avgSalesPerTransactionPOS = FormatRupiah.convertToIdr(
-                double.parse(data.nilai3!).toInt(), 0);
-            grandTotalSalesPOS = FormatRupiah.convertToIdr(
-                double.parse(data.grandtotalsales!).toInt(), 0);
-            numberOfTransactionPOS = data.nilai2.toString();
-            grossSalesPOS = FormatRupiah.convertToIdr(
-                double.parse(data.nilai1!).toInt(), 0);
-            netSalesPOS = FormatRupiah.convertToIdr(
-                double.parse(data.netsales!).toInt(), 0);
-          }
-
-          if (data.kode!.toLowerCase().contains("q002")) {
-            if (data.kodeket!.toLowerCase().contains("tunai")) {
-              cash = FormatRupiah.convertToIdr(
+            if (data.kode!.toLowerCase().contains("q016")) {
+              avgSalesPerTransactionInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai3 ?? "0").toInt(), 0);
+              grandTotalSalesInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.grandtotalsales!).toInt(), 0);
+              numberOfTransactionInvoice = double.parse(data.nilai2.toString()).toInt().toString();
+              grossSalesInvoice = FormatRupiah.convertToIdr(
                   double.parse(data.nilai1!).toInt(), 0);
+              netSalesInvoice = FormatRupiah.convertToIdr(
+                  double.parse(data.netsales ?? "0").toInt(), 0);
             }
-            if (data.kodeket!.toLowerCase().contains("kartu kredit")) {
-              kredit = FormatRupiah.convertToIdr(
+
+            if (data.kode!.toLowerCase().contains("q017")) {
+              avgSalesPerTransactionPOS = FormatRupiah.convertToIdr(
+                  double.parse(data.nilai3 ?? "0").toInt(), 0);
+              grandTotalSalesPOS = FormatRupiah.convertToIdr(
+                  double.parse(data.grandtotalsales!).toInt(), 0);
+              numberOfTransactionPOS = double.parse(data.nilai2.toString()).toInt().toString();
+              grossSalesPOS = FormatRupiah.convertToIdr(
                   double.parse(data.nilai1!).toInt(), 0);
+              netSalesPOS = FormatRupiah.convertToIdr(
+                  double.parse(data.netsales ?? "0").toInt(), 0);
             }
-            if (data.kodeket!.toLowerCase().contains("kartu debit")) {
-              debit = FormatRupiah.convertToIdr(
-                  double.parse(data.nilai1!).toInt(), 0);
+
+            if (data.kode!.toLowerCase().contains("q002")) {
+              if (data.kodeket!.toLowerCase().contains("tunai")) {
+                cash = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
+              if (data.kodeket!.toLowerCase().contains("kartu kredit")) {
+                kredit = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
+              if (data.kodeket!.toLowerCase().contains("transfer")) {
+                debit = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
+              if (data.kodeket!.toLowerCase().contains("uang muka")) {
+                merchantPay = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
+              if (data.kodeket!.toLowerCase().contains("potongan")) {
+                discountAfterTax = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
+              if (data.kodeket!.toLowerCase().contains("klaim")) {
+                klaim = FormatRupiah.convertToIdr(
+                    double.parse(data.nilai1!).toInt(), 0);
+              }
             }
-            if (data.kodeket!.toLowerCase().contains("merchant pay")) {
-              merchantPay = FormatRupiah.convertToIdr(
-                  double.parse(data.nilai1!).toInt(), 0);
+
+            if (data.kode!.toLowerCase().contains("q010")) {
+              String day = (double.parse(data.nilai2!).toInt().toString() == "1")
+                  ? "Sun"
+                  : (double.parse(data.nilai2!).toInt().toString() == "2")
+                  ? "Mon"
+                  : (double.parse(data.nilai2!).toInt().toString() == "3")
+                  ? "Tue"
+                  : (double.parse(data.nilai2!).toInt().toString() == "4")
+                  ? "Wed"
+                  : (double.parse(data.nilai2!).toInt().toString() ==
+                  "5")
+                  ? "Thu"
+                  : (double.parse(data.nilai2!)
+                  .toInt()
+                  .toString() ==
+                  "6")
+                  ? "Fri"
+                  : "Sat";
+
+              salesData
+                  .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
             }
-          }
 
-          if (data.kode!.toLowerCase().contains("q010")) {
-            String day = (double.parse(data.nilai2!).toInt().toString() == "1")
-                ? "Sun"
-                : (double.parse(data.nilai2!).toInt().toString() == "2")
-                    ? "Mon"
-                    : (double.parse(data.nilai2!).toInt().toString() == "3")
-                        ? "Tue"
-                        : (double.parse(data.nilai2!).toInt().toString() == "4")
-                            ? "Wed"
-                            : (double.parse(data.nilai2!).toInt().toString() ==
-                                    "5")
-                                ? "Thu"
-                                : (double.parse(data.nilai2!)
-                                            .toInt()
-                                            .toString() ==
-                                        "6")
-                                    ? "Fri"
-                                    : "Sat";
+            if (data.kode!.toLowerCase().contains("q011")) {
+              String day = "${double.parse(data.nilai2!).toInt().toString()}:00";
 
-            salesData
-                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
-          }
+              salesDataHourly
+                  .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
+            }
+            if (data.kode!.toLowerCase().contains("q015")) {
+              String day = (double.parse(data.nilai2!).toInt().toString() == "1")
+                  ? "Net Sales"
+                  : (double.parse(data.nilai2!).toInt().toString() == "2")
+                  ? "Inv. Out"
+                  : "";
 
-          if (data.kode!.toLowerCase().contains("q011")) {
-            String day = "${double.parse(data.nilai2!).toInt().toString()}:00";
-
-            salesDataHourly
-                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
-          }
-          if (data.kode!.toLowerCase().contains("q015")) {
-            String day = "${data.keterangan}";
-
-            netSalesVsInventoryData
-                .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
-          }
-          if (data.kode!.toLowerCase().contains("q013")) {
-            Staffname.add(SizedBox(
-              width: 120,
-              child: Text(
-                data.keterangan!.toUpperCase(),
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
+              netSalesVsInventoryData
+                  .add(SalesDataWeekly(day, double.parse(data.nilai3!).toInt()));
+            }
+            if (data.kode!.toLowerCase().contains("q013")) {
+              Staffname.add(SizedBox(
+                width: 120,
+                child: Text(
+                  data.keterangan!.toUpperCase(),
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-            ));
+              ));
 
-            Staffsales.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-          }
-
-          if (data.kode!.toLowerCase().contains("q003")) {
-            titles.add(SizedBox(
-              width: 120,
-              child: Text(
-                "WEEKEND TYPE",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            titles.add(SizedBox(
-              width: 120,
-              child: Text(
-                DateFormat("dd MMM (EEE)").format(DateTime.now()),
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            titles.add(SizedBox(
-              width: 120,
-              child: Text(
-                "AVG WEEKEND",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            titles.add(SizedBox(
-              width: 120,
-              child: Text(
-                "AVG WEEKDAY",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-            values.add(Text(
-              "Saturday, Sunday",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-            values.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-            values.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-            values.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-          }
-
-          if (data.kode!.toLowerCase().contains("q004")) {
-
-            titlesGrossSales.add(SizedBox(
-              width: 120,
-              child: Text(
-                "SALES GOALS",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            titlesGrossSales.add(SizedBox(
-              width: 120,
-              child: Text(
-                "1 - ${DateFormat("dd MMM (EEE)").format(DateTime.now())}",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            titlesGrossSales.add(SizedBox(
-              width: 120,
-              child: Text(
-                "AVG PER MONTH",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-
-            valuesGrossSales.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0).toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-            valuesGrossSales.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-            valuesGrossSales.add(Text(
-              FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
-                  .toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ));
-          }
-
-          if (data.kode!.toLowerCase().contains("q005")) {
-            titlesAVGPurhcase.add(SizedBox(
-              width: 120,
-              child: Text(
-                "TODAY",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-            titlesAVGPurhcase.add(SizedBox(
-              width: 120,
-              child: Text(
-                "AVERAGE",
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ));
-            valuesAVGPurchase.add(SizedBox(
-              width: 120,
-              child: Text(
+              Staffsales.add(Text(
                 FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
                     .toString(),
-                textAlign: TextAlign.end,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 13,
                 ),
-              ),
-            ));
-            valuesAVGPurchase.add(SizedBox(
-              width: 120,
-              child: Text(
+              ));
+            }
+
+            if (data.kode!.toLowerCase().contains("q003")) {
+              titles.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "WEEKEND TYPE",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+
+              titles.add(SizedBox(
+                width: 120,
+                child: Text(
+                  DateFormat("dd MMM (EEE)").format(DateTime.now()),
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+
+              titles.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "AVG WEEKEND",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+
+              titles.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "AVG WEEKDAY",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+              values.add(Text(
+                "Saturday, Sunday",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+              values.add(Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                    .toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+              values.add(Text(
                 FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
                     .toString(),
-                textAlign: TextAlign.end,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 13,
                 ),
-              ),
-            ));
-          }
+              ));
+              values.add(Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
+                    .toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+            }
 
-          if (data.kode!.toLowerCase().contains("q008")) {
-            final Random random = Random();
-            dataMostSelling.add(CircularData(
-              data.keterangan!,
-              double.parse(data.nilai1!),
-              double.parse(data.nilai2!),
-            ));
-            CustomGraphicState.tempCircularData = dataMostSelling.toList();
-          }
+            if (data.kode!.toLowerCase().contains("q004")) {
+              titlesGrossSales.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "SALES GOALS",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
 
-          if (data.kode!.toLowerCase().contains("q009")) {
-            final Random random = Random();
-            dataMostCategory.add(CircularData(
+              titlesGrossSales.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "1 - ${DateFormat("dd MMM (EEE)").format(DateTime.now())}",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+
+              titlesGrossSales.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "AVG PER MONTH",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+
+              valuesGrossSales.add(Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                    .toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+              valuesGrossSales.add(Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
+                    .toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+              valuesGrossSales.add(Text(
+                FormatRupiah.convertToIdr(double.parse(data.nilai3!).toInt(), 0)
+                    .toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ));
+            }
+
+            if (data.kode!.toLowerCase().contains("q005")) {
+              titlesAVGPurhcase.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "TODAY",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+              titlesAVGPurhcase.add(SizedBox(
+                width: 120,
+                child: Text(
+                  "AVERAGE",
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+              valuesAVGPurchase.add(SizedBox(
+                width: 120,
+                child: Text(
+                  FormatRupiah.convertToIdr(double.parse(data.nilai1!).toInt(), 0)
+                      .toString(),
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+              valuesAVGPurchase.add(SizedBox(
+                width: 120,
+                child: Text(
+                  FormatRupiah.convertToIdr(double.parse(data.nilai2!).toInt(), 0)
+                      .toString(),
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ));
+            }
+
+            if (data.kode!.toLowerCase().contains("q008")) {
+              dataMostSelling.add(CircularData(
                 data.keterangan!,
                 double.parse(data.nilai1!),
-                double.parse(data.nilai2!)));
-          }
+                double.parse(data.nilai2!),
+              ));
+            }
 
-          if (data.kode!.toLowerCase().contains("q006")) {
-            final Random random = Random();
-            dataMostActive.add(CircularData(
-                data.keterangan!,
-                double.parse(data.nilai1!),
-                double.parse(data.nilai2!)));
-          }
+            if (data.kode!.toLowerCase().contains("q009")) {
+              dataMostCategory.add(CircularData(data.keterangan!,
+                  double.parse(data.nilai1!), double.parse(data.nilai2!)));
+            }
 
-          if (data.kode!.toLowerCase().contains("q018")) {
-            final Random random = Random();
-            dataMostSellingProduct.add(CircularData(
-                data.keterangan!,
-                double.parse(data.nilai1!),
-                double.parse(data.nilai2!)));
-            CustomGraphicState.tempCircularDataProduct = dataMostSellingProduct.toList();
-          }
+            if (data.kode!.toLowerCase().contains("q006")) {
+              dataMostActive.add(CircularData(data.keterangan!,
+                  double.parse(data.nilai1!), double.parse(data.nilai2!)));
+            }
 
-          if (data.kode!.toLowerCase().contains("q019")) {
-            final Random random = Random();
-            dataMostSellingService.add(CircularData(
-                data.keterangan!,
-                double.parse(data.nilai1!),
-                double.parse(data.nilai2!)));
-            CustomGraphicState.tempCircularDataService = dataMostSellingService.toList();
-          }
+            if (data.kode!.toLowerCase().contains("q018")) {
+              dataMostSellingProduct.add(CircularData(data.keterangan!,
+                  double.parse(data.nilai1!), double.parse(data.nilai2!)));
+            }
 
-          if (data.kode!.toLowerCase().contains("q007")) {
-            belowMinimumStock.add(SalesDataWeekly(data.keterangan!,  double.parse(data.nilai1!).toInt()));
+            if (data.kode!.toLowerCase().contains("q019")) {
+              dataMostSellingService.add(CircularData(data.keterangan!,
+                  double.parse(data.nilai1!), double.parse(data.nilai2!)));
+            }
+
+            if (data.kode!.toLowerCase().contains("q007")) {
+              belowMinimumStock.add(SalesDataWeekly(
+                  data.keterangan!, double.parse(data.nilai1!).toInt()));
+            }
           }
+          setState(() {});
         }
-        setState(() {});
-      }
-    });
+      });
+    }catch(e){
+      EasyLoading.dismiss();
+      EasyLoading.show(
+          status: 'Gagal mendapat data, Silahkan coba lagi.',
+          dismissOnTap: true,
+          maskType: EasyLoadingMaskType.black);
+    }
+
 
     // await queryService
     //     .getDashboardQuery(QueryDashboard.dashBoardQuery(
@@ -937,16 +997,31 @@ class _DashboardPageState extends State<DashboardPage>
                     SingleChildScrollView(
                       child: Column(
                         children: [
+                          ((grossSales == grandTotalSales) &&
+                                  (grossSales == netSales))
+                              ? SizedBox()
+                              : (grossSales == netSales)
+                                  ? SizedBox()
+                                  :
                           CustomContainerDashboard(
-                            nominal: grossSales,
-                            title: "GROSS SALES",
-                            subtitle: "(before disc, tax, and service)",
-                          ),
-                          CustomContainerDashboard(
-                            nominal: netSales,
-                            title: "NET SALES",
-                            subtitle: "(after disc before tax and service)",
-                          ),
+                                      nominal: grossSales,
+                                      product: grossSalesProduct,
+                                      service: grossSalesService,
+                                      title: "GROSS SALES",
+                                      subtitle:
+                                          "(before disc, tax, and service)",
+                                    ),
+                          ((grossSales == grandTotalSales) &&
+                                  (grossSales == netSales))
+                              ? SizedBox()
+                              : CustomContainerDashboard(
+                                  nominal: netSales,
+                                  product: netSalesProduct,
+                                  service: netSalesService,
+                                  title: "NET SALES",
+                                  subtitle:
+                                      "(after disc before tax and service)",
+                                ),
                           CustomContainerDashboard(
                             nominal: grandTotalSales,
                             title: "GRAND TOTAL SALES",
@@ -974,6 +1049,8 @@ class _DashboardPageState extends State<DashboardPage>
                             kredit: kredit,
                             debit: debit,
                             merchant: merchantPay,
+                            klaim: klaim,
+                            discountAfterTax: discountAfterTax,
                           ),
                           (isSubmittedForNetProfit)
                               ? CustomContainerDashboard(
@@ -1002,12 +1079,12 @@ class _DashboardPageState extends State<DashboardPage>
                             data: netSalesVsInventoryData,
                             dataCircular: [],
                           ),
-                          CustomContainerDashboard2(
-                            cash: cash,
-                            kredit: kredit,
-                            debit: debit,
-                            merchant: merchantPay,
-                          ),
+                          // CustomContainerDashboard2(
+                          //   cash: cash,
+                          //   kredit: kredit,
+                          //   debit: debit,
+                          //   merchant: merchantPay,
+                          // ),
                           CustomContainerDashboard3(
                             staffName: Staffname,
                             staffSales: Staffsales,
@@ -1022,7 +1099,9 @@ class _DashboardPageState extends State<DashboardPage>
                           CustomContainerDashboard3(
                             staffName: titlesGrossSales,
                             staffSales: valuesGrossSales,
-                            cabang:(dropdownValueBranch == null)?"": dropdownValueBranch!.cabang,
+                            cabang: (dropdownValueBranch == null)
+                                ? ""
+                                : dropdownValueBranch!.cabang,
                             title:
                                 "gross sales amount until today vs avg permonth",
                           ),
@@ -1038,12 +1117,12 @@ class _DashboardPageState extends State<DashboardPage>
                             dataCircularProduct: dataMostSellingProduct,
                             dataCircularService: dataMostSellingService,
                           ),
-                          CustomGraphic(
+                          CustomGraphicCategory(
                             title: "Most Selling Category",
                             graphtype: "mostselling",
                             dataCircular: dataMostCategory,
                           ),
-                          CustomGraphic(
+                          CustomGraphicCustomer(
                             title: "Most Active Customers",
                             graphtype: "mostselling",
                             dataCircular: dataMostActive,
@@ -1060,13 +1139,30 @@ class _DashboardPageState extends State<DashboardPage>
                     SingleChildScrollView(
                       child: Column(
                         children: [
+                          ((grossSalesPOS == grandTotalSalesPOS) &&
+                              (grossSalesPOS == netSalesPOS))
+                              ? SizedBox()
+                              : (grossSalesPOS == netSalesPOS)
+                              ? SizedBox()
+                              :
                           CustomContainerDashboard(
                             nominal: grossSalesPOS,
+                            product: grossSalesProductPOS,
+                            service: grossSalesServicePOS,
                             title: "GROSS SALES POS",
+                            subtitle:
+                            "(before disc, tax, and service)",
                           ),
-                          CustomContainerDashboard(
+                          ((grossSalesPOS == grandTotalSalesPOS) &&
+                              (grossSalesPOS == netSalesPOS))
+                              ? SizedBox()
+                              : CustomContainerDashboard(
                             nominal: netSalesPOS,
+                            product: netSalesProductPOS,
+                            service: netSalesServicePOS,
                             title: "NET SALES POS",
+                            subtitle:
+                            "(after disc before tax and service)",
                           ),
                           CustomContainerDashboard(
                             nominal: grandTotalSalesPOS,
@@ -1090,13 +1186,30 @@ class _DashboardPageState extends State<DashboardPage>
                     SingleChildScrollView(
                       child: Column(
                         children: [
+                          ((grossSalesInvoice == grandTotalSalesInvoice) &&
+                              (grossSalesInvoice == netSalesInvoice))
+                              ? SizedBox()
+                              : (grossSalesInvoice== netSalesInvoice)
+                              ? SizedBox()
+                              :
                           CustomContainerDashboard(
                             nominal: grossSalesInvoice,
-                            title: "GROSS SALES INVOICE",
+                            product: grossSalesProductInvoice,
+                            service: grossSalesServiceInvoice,
+                            title: "GROSS SALES Invoice",
+                            subtitle:
+                            "(before disc, tax, and service)",
                           ),
-                          CustomContainerDashboard(
+                          ((grossSalesInvoice == grandTotalSalesInvoice) &&
+                              (grossSalesInvoice == netSalesInvoice))
+                              ? SizedBox()
+                              : CustomContainerDashboard(
                             nominal: netSalesInvoice,
-                            title: "NET SALES INVOICE",
+                            product: netSalesProductInvoice,
+                            service: netSalesServiceInvoice,
+                            title: "NET SALES Invoice",
+                            subtitle:
+                            "(after disc before tax and service)",
                           ),
                           CustomContainerDashboard(
                             nominal: grandTotalSalesInvoice,

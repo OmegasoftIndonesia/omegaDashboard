@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:omega_dashboard/models/CircularData.dart';
@@ -13,7 +11,7 @@ class CustomGraphic extends StatefulWidget {
   final String? graphtype;
   final Color? color;
   final List<SalesDataWeekly>? data;
-  final List<CircularData> dataCircular;
+  final List<CircularData>? dataCircular;
   final List<CircularData>? dataCircularService;
   final List<CircularData>? dataCircularProduct;
 
@@ -24,8 +22,7 @@ class CustomGraphic extends StatefulWidget {
       this.color,
       this.data,
       this.dataCircularProduct,
-      this.dataCircularService,
-      required this.dataCircular});
+      this.dataCircularService, this.dataCircular});
 
   @override
   State<CustomGraphic> createState() => CustomGraphicState();
@@ -34,9 +31,10 @@ class CustomGraphic extends StatefulWidget {
 class CustomGraphicState extends State<CustomGraphic> {
   String _selectedOption = 'qty';
   String startFrom = "Sunday";
-  static List<CircularData> tempCircularData = [];
-  static List<CircularData> tempCircularDataService = [];
-  static List<CircularData> tempCircularDataProduct = [];
+  late List<SalesDataWeekly> _dataGrafik;
+  late List<CircularData> _circularData;
+  late List<CircularData> _circularDataService;
+  late List<CircularData> _circularDataProduct;
   CarouselSliderController buttonCarouselController =
       CarouselSliderController();
 
@@ -44,6 +42,27 @@ class CustomGraphicState extends State<CustomGraphic> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    _hydrateFromWidget();
+  }
+
+  @override
+  void didUpdateWidget(CustomGraphic oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dataCircular != widget.dataCircular ||
+        oldWidget.data != widget.data ||
+        oldWidget.dataCircularService != widget.dataCircularService ||
+        oldWidget.dataCircularProduct != widget.dataCircularProduct) {
+      _hydrateFromWidget();
+    }
+  }
+
+  /// put copies of the incoming lists into the local (non‑static) state
+  void _hydrateFromWidget() {
+    _dataGrafik = List<SalesDataWeekly>.from(widget.data ?? []);
+    _circularData         = List<CircularData>.from(widget.dataCircular ?? []);
+    _circularDataService  = List<CircularData>.from(widget.dataCircularService ?? []);
+    _circularDataProduct  = List<CircularData>.from(widget.dataCircularProduct ?? []);
+    setState(() {});              // rebuild the charts
   }
 
   @override
@@ -63,7 +82,9 @@ class CustomGraphicState extends State<CustomGraphic> {
                         ? mostSellingItem()
                         : (widget.graphtype == 'Belowminimumstock')
                             ? bellowMinimumStock()
-                            : mostSelling(),
+                            : (widget.graphtype == 'mostselling')
+                                ? mostSelling()
+                                : SizedBox(),
       ),
     );
   }
@@ -75,7 +96,7 @@ class CustomGraphicState extends State<CustomGraphic> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Start From',          // ← judul/label di atas
+              'Start From', // ← judul/label di atas
               style: TextStyle(color: Colors.white),
             ),
             SizedBox(
@@ -84,38 +105,42 @@ class CustomGraphicState extends State<CustomGraphic> {
             SizedBox(
               child: DropdownButton<String>(
                 value: startFrom,
-                style: TextStyle(
-                  color: Colors.white
-                ),
+                dropdownColor: Colors.black,
                 items: <String>['Sunday', 'Monday'].map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value,),
+                    child: Text(
+                      value,
+                      style: TextStyle(color: Colors.white),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
                   setState(() {
                     startFrom = value!;
                     List<SalesDataWeekly> temp = [];
-                    if(value == "Monday"){
-                      temp = widget.data!.toList();
-                      widget.data!.remove(temp.where((test)=> test.day == "Sun").first);
-                      widget.data!.add(temp.where((test)=> test.day == "Sun").first);
-                    }else{
-                      temp = widget.data!.toList();
-                      widget.data!.remove(temp.where((test)=> test.day == "Sun").first);
-                      widget.data!.insert(0,temp.where((test)=> test.day == "Sun").first);
+                    if (value == "Monday") {
+                      temp = _dataGrafik.toList();
+                      _dataGrafik.remove(
+                          temp.where((test) => test.day == "Sun").first);
+                      _dataGrafik
+                          .add(temp.where((test) => test.day == "Sun").first);
+                    } else {
+                      temp = _dataGrafik.toList();
+                      _dataGrafik.remove(
+                          temp.where((test) => test.day == "Sun").first);
+                      _dataGrafik.insert(
+                          0, temp.where((test) => test.day == "Sun").first);
                     }
                   });
-
                 },
               ),
             ),
           ],
         ),
         SizedBox(
-          width: 300,
-          height:300,
+          width: 500,
+          height: 500,
           child: SfCartesianChart(
             backgroundColor: widget.color,
             title: ChartTitle(
@@ -125,11 +150,11 @@ class CustomGraphicState extends State<CustomGraphic> {
             series: <ColumnSeries<SalesDataWeekly, String>>[
               ColumnSeries<SalesDataWeekly, String>(
                   color: Colors.white,
-                  dataSource: widget.data,
+                  dataSource: _dataGrafik,
                   xValueMapper: (SalesDataWeekly datum, _) => datum.day,
                   yValueMapper: (SalesDataWeekly datum, _) => datum.sales,
-                  dataLabelSettings:
-                      const DataLabelSettings(isVisible: true, color: Colors.white))
+                  dataLabelSettings: const DataLabelSettings(
+                      isVisible: true, color: Colors.white,showZeroValue: false))
             ],
           ),
         ),
@@ -149,11 +174,12 @@ class CustomGraphicState extends State<CustomGraphic> {
       series: <StackedLineSeries<SalesDataWeekly, String>>[
         StackedLineSeries<SalesDataWeekly, String>(
             color: Colors.white,
-            dataSource: widget.data,
+            dataSource: _dataGrafik,
             xValueMapper: (SalesDataWeekly datum, _) => datum.day,
             yValueMapper: (SalesDataWeekly datum, _) => datum.sales,
             dataLabelSettings:
-                const DataLabelSettings(isVisible: false, color: Colors.white))
+                const DataLabelSettings(isVisible: true, color: Colors.white, showZeroValue: false,
+                ))
       ],
     );
   }
@@ -171,7 +197,7 @@ class CustomGraphicState extends State<CustomGraphic> {
       series: <ColumnSeries<SalesDataWeekly, String>>[
         ColumnSeries<SalesDataWeekly, String>(
             color: Colors.white,
-            dataSource: widget.data,
+            dataSource: _dataGrafik,
             xValueMapper: (SalesDataWeekly datum, _) => datum.day,
             yValueMapper: (SalesDataWeekly datum, _) => datum.sales,
             dataLabelSettings:
@@ -185,19 +211,19 @@ class CustomGraphicState extends State<CustomGraphic> {
       children: [
         (widget.title! == "Most Selling items")
             ? SizedBox(
-                width: 300,
-                height: 300,
+                width: 500,
+                height: 500,
                 child: CarouselSlider(
                   items: [
                     SizedBox(
-                      width: 300,
-                      height: 300,
+                      width: 500,
+                      height: 500,
                       child: SfCircularChart(
                         backgroundColor: widget.color,
                         legend: const Legend(
                           isVisible: true,
                           // Show the legend
-                          position: LegendPosition.auto,
+                          position: LegendPosition.bottom,
                           // Top, bottom, left, right
                           overflowMode: LegendItemOverflowMode.wrap,
                           // Avoid clipping
@@ -209,7 +235,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                             textStyle: const TextStyle(color: Colors.white)),
                         series: <CircularSeries<CircularData, String>>[
                           PieSeries<CircularData, String>(
-                            dataSource: tempCircularData,
+                            dataSource: _circularData,
                             xValueMapper: (CircularData data, _) => data.label,
                             yValueMapper: (CircularData data, _) {
                               if (_selectedOption == "totalprice") {
@@ -228,13 +254,17 @@ class CustomGraphicState extends State<CustomGraphic> {
                                         FormatRupiah.convertToIdr(
                                                 point.y!.toInt(), 0)
                                             .toString(),
-                                        style: const TextStyle(fontSize: 10));
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   } else if (_selectedOption == "persen") {
-                                    return Text('${point.y.toString()} %',
-                                        style: const TextStyle(fontSize: 10));
+                                    return Text(
+                                        '${point.y!.toStringAsFixed(2)} %',
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   } else {
                                     return Text(point.y!.toInt().toString(),
-                                        style: const TextStyle(fontSize: 10));
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   }
                                 }),
                           ),
@@ -242,8 +272,8 @@ class CustomGraphicState extends State<CustomGraphic> {
                       ),
                     ),
                     SizedBox(
-                        width: 300,
-                        height: 300,
+                        width: 500,
+                        height: 500,
                         child: SfCircularChart(
                           backgroundColor: widget.color,
                           legend: const Legend(
@@ -261,7 +291,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                               textStyle: const TextStyle(color: Colors.white)),
                           series: <CircularSeries<CircularData, String>>[
                             PieSeries<CircularData, String>(
-                              dataSource: tempCircularDataProduct,
+                              dataSource: _circularDataProduct,
                               xValueMapper: (CircularData data, _) =>
                                   data.label,
                               yValueMapper: (CircularData data, _) {
@@ -281,21 +311,28 @@ class CustomGraphicState extends State<CustomGraphic> {
                                           FormatRupiah.convertToIdr(
                                                   point.y!.toInt(), 0)
                                               .toString(),
-                                          style: const TextStyle(fontSize: 10));
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white));
                                     } else if (_selectedOption == "persen") {
-                                      return Text('${point.y.toString()} %',
-                                          style: const TextStyle(fontSize: 10));
+                                      return Text(
+                                          '${point.y!.toStringAsFixed(2)} %',
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white));
                                     } else {
                                       return Text(point.y!.toInt().toString(),
-                                          style: const TextStyle(fontSize: 10));
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white));
                                     }
                                   }),
                             ),
                           ],
                         )),
                     SizedBox(
-                      width: 300,
-                      height: 300,
+                      width: 500,
+                      height: 500,
                       child: SfCircularChart(
                         backgroundColor: widget.color,
                         legend: const Legend(
@@ -313,7 +350,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                             textStyle: const TextStyle(color: Colors.white)),
                         series: <CircularSeries<CircularData, String>>[
                           PieSeries<CircularData, String>(
-                            dataSource: tempCircularDataService,
+                            dataSource: _circularDataService,
                             xValueMapper: (CircularData data, _) => data.label,
                             yValueMapper: (CircularData data, _) {
                               if (_selectedOption == "totalprice") {
@@ -332,13 +369,17 @@ class CustomGraphicState extends State<CustomGraphic> {
                                         FormatRupiah.convertToIdr(
                                                 point.y!.toInt(), 0)
                                             .toString(),
-                                        style: const TextStyle(fontSize: 10));
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   } else if (_selectedOption == "persen") {
-                                    return Text('${point.y.toString()} %',
-                                        style: const TextStyle(fontSize: 10));
+                                    return Text(
+                                        '${point.y!.toStringAsFixed(2)} %',
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   } else {
                                     return Text(point.y!.toInt().toString(),
-                                        style: const TextStyle(fontSize: 10));
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.white));
                                   }
                                 }),
                           ),
@@ -357,8 +398,8 @@ class CustomGraphicState extends State<CustomGraphic> {
                 ),
               )
             : SizedBox(
-                width: 300,
-                height: 300,
+                width: 500,
+                height: 500,
                 child: SfCircularChart(
                   backgroundColor: widget.color,
                   legend: const Legend(
@@ -376,7 +417,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                       textStyle: const TextStyle(color: Colors.white)),
                   series: <CircularSeries<CircularData, String>>[
                     PieSeries<CircularData, String>(
-                      dataSource: tempCircularData,
+                      dataSource: _circularData,
                       xValueMapper: (CircularData data, _) => data.label,
                       yValueMapper: (CircularData data, _) {
                         if (_selectedOption == "totalprice") {
@@ -394,13 +435,16 @@ class CustomGraphicState extends State<CustomGraphic> {
                               return Text(
                                   FormatRupiah.convertToIdr(point.y!.toInt(), 0)
                                       .toString(),
-                                  style: const TextStyle(fontSize: 10));
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
                             } else if (_selectedOption == "persen") {
-                              return Text('${point.y.toString()} %',
-                                  style: const TextStyle(fontSize: 10));
+                              return Text('${point.y!.toStringAsFixed(2)} %',
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
                             } else {
                               return Text(point.y!.toInt().toString(),
-                                  style: const TextStyle(fontSize: 10));
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
                             }
                           }),
                     ),
@@ -409,6 +453,8 @@ class CustomGraphicState extends State<CustomGraphic> {
               ),
         SizedBox(
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
                 width: 30,
@@ -418,18 +464,17 @@ class CustomGraphicState extends State<CustomGraphic> {
                   groupValue: _selectedOption,
                   onChanged: (value) {
                     setState(() {
-                      final Random random = Random();
                       double totalQty = 0;
-                      tempCircularData.clear();
+                      _circularData.clear();
 
                       _selectedOption = value!;
-                      widget.dataCircular.forEach((action) {
+                      widget.dataCircular!.forEach((action) {
                         totalQty = totalQty + action.value;
                       });
 
-                      widget.dataCircular.forEach((action) {
+                      widget.dataCircular!.forEach((action) {
                         double persenValue = (action.value / totalQty) * 100;
-                        tempCircularData.add(CircularData(
+                        _circularData.add(CircularData(
                             action.label, persenValue, action.valuePrice!));
                       });
                     });
@@ -449,7 +494,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                   onChanged: (value) {
                     setState(() {
                       _selectedOption = value!;
-                      tempCircularData = widget.dataCircular.toList();
+                      _circularData = widget.dataCircular!.toList();
                     });
                   },
                 ),
@@ -467,7 +512,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                   onChanged: (value) {
                     setState(() {
                       _selectedOption = value!;
-                      tempCircularData = widget.dataCircular.toList();
+                      _circularData = widget.dataCircular!.toList();
                     });
                   },
                 ),
@@ -485,198 +530,209 @@ class CustomGraphicState extends State<CustomGraphic> {
 
   Widget mostSellingItem() {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          child: Row(
-            children: [
+          width: 500,
+          height: 500,
+          child: CarouselSlider(
+            items: [
               SizedBox(
-                width: 30,
-                child: TextButton(
-                  onPressed: () => buttonCarouselController.previousPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.linear),
+                width: 500,
+                height: 500,
+                child: SfCircularChart(
+                  backgroundColor: widget.color,
+                  legend: const Legend(
+                    isVisible: true,
+                    // Show the legend
+                    position: LegendPosition.auto,
+                    // Top, bottom, left, right
+                    overflowMode: LegendItemOverflowMode.wrap,
+                    // Avoid clipping
+                    textStyle: TextStyle(color: Colors.white),
+                    toggleSeriesVisibility: true,
+                  ),
+                  title: ChartTitle(
+                      text: widget.title!.toUpperCase(),
+                      textStyle: const TextStyle(color: Colors.white)),
+                  series: <CircularSeries<CircularData, String>>[
+                    PieSeries<CircularData, String>(
+                      dataSource: _circularData,
+                      xValueMapper: (CircularData data, _) => data.label,
+                      yValueMapper: (CircularData data, _) {
+                        if (_selectedOption == "totalprice") {
+                          return data.valuePrice;
+                        } else {
+                          return data.value;
+                        }
+                      },
+                      dataLabelSettings: DataLabelSettings(
+                          isVisible: true,
+                          labelPosition: ChartDataLabelPosition.inside,
+                          builder:
+                              (data, point, series, pointIndex, seriesIndex) {
+                            if (_selectedOption == "totalprice") {
+                              return Text(
+                                  FormatRupiah.convertToIdr(point.y!.toInt(), 0)
+                                      .toString(),
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            } else if (_selectedOption == "persen") {
+                              return Text('${point.y!.toStringAsFixed(2)} %',
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            } else {
+                              return Text(point.y!.toInt().toString(),
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            }
+                          }),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                  width: 500,
+                  height: 500,
+                  child: SfCircularChart(
+                    backgroundColor: widget.color,
+                    legend: const Legend(
+                      isVisible: true,
+                      // Show the legend
+                      position: LegendPosition.auto,
+                      // Top, bottom, left, right
+                      overflowMode: LegendItemOverflowMode.wrap,
+                      // Avoid clipping
+                      textStyle: TextStyle(color: Colors.white),
+                      toggleSeriesVisibility: true,
+                    ),
+                    title: ChartTitle(
+                        text: "Most Selling product".toUpperCase(),
+                        textStyle: const TextStyle(color: Colors.white)),
+                    series: <CircularSeries<CircularData, String>>[
+                      PieSeries<CircularData, String>(
+                        dataSource: _circularDataProduct,
+                        xValueMapper: (CircularData data, _) => data.label,
+                        yValueMapper: (CircularData data, _) {
+                          if (_selectedOption == "totalprice") {
+                            return data.valuePrice;
+                          } else {
+                            return data.value;
+                          }
+                        },
+                        dataLabelSettings: DataLabelSettings(
+                            isVisible: true,
+                            labelPosition: ChartDataLabelPosition.inside,
+                            builder:
+                                (data, point, series, pointIndex, seriesIndex) {
+                              if (_selectedOption == "totalprice") {
+                                return Text(
+                                    FormatRupiah.convertToIdr(
+                                            point.y!.toInt(), 0)
+                                        .toString(),
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.white));
+                              } else if (_selectedOption == "persen") {
+                                return Text('${point.y!.toStringAsFixed(2)} %',
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.white));
+                              } else {
+                                return Text(point.y!.toInt().toString(),
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.white));
+                              }
+                            }),
+                      ),
+                    ],
+                  )),
+              SizedBox(
+                width: 500,
+                height: 500,
+                child: SfCircularChart(
+                  backgroundColor: widget.color,
+                  legend: const Legend(
+                    isVisible: true,
+                    // Show the legend
+                    position: LegendPosition.auto,
+                    // Top, bottom, left, right
+                    overflowMode: LegendItemOverflowMode.wrap,
+                    // Avoid clipping
+                    textStyle: TextStyle(color: Colors.white),
+                    toggleSeriesVisibility: true,
+                  ),
+                  title: ChartTitle(
+                      text: "Most Selling service".toUpperCase(),
+                      textStyle: const TextStyle(color: Colors.white)),
+                  series: <CircularSeries<CircularData, String>>[
+                    PieSeries<CircularData, String>(
+                      dataSource: _circularDataService,
+                      xValueMapper: (CircularData data, _) => data.label,
+                      yValueMapper: (CircularData data, _) {
+                        if (_selectedOption == "totalprice") {
+                          return data.valuePrice;
+                        } else {
+                          return data.value;
+                        }
+                      },
+                      dataLabelSettings: DataLabelSettings(
+                          isVisible: true,
+                          labelPosition: ChartDataLabelPosition.inside,
+                          builder:
+                              (data, point, series, pointIndex, seriesIndex) {
+                            if (_selectedOption == "totalprice") {
+                              return Text(
+                                  FormatRupiah.convertToIdr(point.y!.toInt(), 0)
+                                      .toString(),
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            } else if (_selectedOption == "persen") {
+                              return Text('${point.y!.toStringAsFixed(2)} %',
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            } else {
+                              return Text(point.y!.toInt().toString(),
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.white));
+                            }
+                          }),
+                    ),
+                  ],
+                ),
+              )
+            ],
+            carouselController: buttonCarouselController,
+            options: CarouselOptions(
+              scrollDirection: Axis.horizontal,
+              scrollPhysics: ScrollPhysics(),
+              autoPlay: false,
+              enlargeCenterPage: true,
+              viewportFraction: 1,
+              aspectRatio: 0.5,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 300,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              InkWell(
+                onTap: () => buttonCarouselController.previousPage(
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.linear),
+                child: SizedBox(
+                  width: 50,
                   child: const Icon(Icons.chevron_left, color: Colors.white),
                 ),
               ),
-              SizedBox(
-                width: 230,
-                height: 300,
-                child: CarouselSlider(
-                  items: [
-                    SizedBox(
-                      width: 300,
-                      height: 300,
-                      child: SfCircularChart(
-                        backgroundColor: widget.color,
-                        legend: const Legend(
-                          isVisible: true,
-                          // Show the legend
-                          position: LegendPosition.auto,
-                          // Top, bottom, left, right
-                          overflowMode: LegendItemOverflowMode.wrap,
-                          // Avoid clipping
-                          textStyle: TextStyle(color: Colors.white),
-                          toggleSeriesVisibility: true,
-                        ),
-                        title: ChartTitle(
-                            text: widget.title!.toUpperCase(),
-                            textStyle: const TextStyle(color: Colors.white)),
-                        series: <CircularSeries<CircularData, String>>[
-                          PieSeries<CircularData, String>(
-                            dataSource: tempCircularData,
-                            xValueMapper: (CircularData data, _) => data.label,
-                            yValueMapper: (CircularData data, _) {
-                              if (_selectedOption == "totalprice") {
-                                return data.valuePrice;
-                              } else {
-                                return data.value;
-                              }
-                            },
-                            dataLabelSettings: DataLabelSettings(
-                                isVisible: true,
-                                labelPosition: ChartDataLabelPosition.inside,
-                                builder: (data, point, series, pointIndex,
-                                    seriesIndex) {
-                                  if (_selectedOption == "totalprice") {
-                                    return Text(
-                                        FormatRupiah.convertToIdr(
-                                                point.y!.toInt(), 0)
-                                            .toString(),
-                                        style: const TextStyle(fontSize: 10));
-                                  } else if (_selectedOption == "persen") {
-                                    return Text('${point.y.toString()} %',
-                                        style: const TextStyle(fontSize: 10));
-                                  } else {
-                                    return Text(point.y!.toInt().toString(),
-                                        style: const TextStyle(fontSize: 10));
-                                  }
-                                }),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                        width: 300,
-                        height: 300,
-                        child: SfCircularChart(
-                          backgroundColor: widget.color,
-                          legend: const Legend(
-                            isVisible: true,
-                            // Show the legend
-                            position: LegendPosition.auto,
-                            // Top, bottom, left, right
-                            overflowMode: LegendItemOverflowMode.wrap,
-                            // Avoid clipping
-                            textStyle: TextStyle(color: Colors.white),
-                            toggleSeriesVisibility: true,
-                          ),
-                          title: ChartTitle(
-                              text: "Most Selling product".toUpperCase(),
-                              textStyle: const TextStyle(color: Colors.white)),
-                          series: <CircularSeries<CircularData, String>>[
-                            PieSeries<CircularData, String>(
-                              dataSource: tempCircularDataProduct,
-                              xValueMapper: (CircularData data, _) =>
-                                  data.label,
-                              yValueMapper: (CircularData data, _) {
-                                if (_selectedOption == "totalprice") {
-                                  return data.valuePrice;
-                                } else {
-                                  return data.value;
-                                }
-                              },
-                              dataLabelSettings: DataLabelSettings(
-                                  isVisible: true,
-                                  labelPosition: ChartDataLabelPosition.inside,
-                                  builder: (data, point, series, pointIndex,
-                                      seriesIndex) {
-                                    if (_selectedOption == "totalprice") {
-                                      return Text(
-                                          FormatRupiah.convertToIdr(
-                                                  point.y!.toInt(), 0)
-                                              .toString(),
-                                          style: const TextStyle(fontSize: 10));
-                                    } else if (_selectedOption == "persen") {
-                                      return Text('${point.y.toString()} %',
-                                          style: const TextStyle(fontSize: 10));
-                                    } else {
-                                      return Text(point.y!.toInt().toString(),
-                                          style: const TextStyle(fontSize: 10));
-                                    }
-                                  }),
-                            ),
-                          ],
-                        )),
-                    SizedBox(
-                      width: 300,
-                      height: 300,
-                      child: SfCircularChart(
-                        backgroundColor: widget.color,
-                        legend: const Legend(
-                          isVisible: true,
-                          // Show the legend
-                          position: LegendPosition.auto,
-                          // Top, bottom, left, right
-                          overflowMode: LegendItemOverflowMode.wrap,
-                          // Avoid clipping
-                          textStyle: TextStyle(color: Colors.white),
-                          toggleSeriesVisibility: true,
-                        ),
-                        title: ChartTitle(
-                            text: "Most Selling service".toUpperCase(),
-                            textStyle: const TextStyle(color: Colors.white)),
-                        series: <CircularSeries<CircularData, String>>[
-                          PieSeries<CircularData, String>(
-                            dataSource: tempCircularDataService,
-                            xValueMapper: (CircularData data, _) => data.label,
-                            yValueMapper: (CircularData data, _) {
-                              if (_selectedOption == "totalprice") {
-                                return data.valuePrice;
-                              } else {
-                                return data.value;
-                              }
-                            },
-                            dataLabelSettings: DataLabelSettings(
-                                isVisible: true,
-                                labelPosition: ChartDataLabelPosition.inside,
-                                builder: (data, point, series, pointIndex,
-                                    seriesIndex) {
-                                  if (_selectedOption == "totalprice") {
-                                    return Text(
-                                        FormatRupiah.convertToIdr(
-                                                point.y!.toInt(), 0)
-                                            .toString(),
-                                        style: const TextStyle(fontSize: 10));
-                                  } else if (_selectedOption == "persen") {
-                                    return Text('${point.y.toString()} %',
-                                        style: const TextStyle(fontSize: 10));
-                                  } else {
-                                    return Text(point.y!.toInt().toString(),
-                                        style: const TextStyle(fontSize: 10));
-                                  }
-                                }),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                  carouselController: buttonCarouselController,
-                  options: CarouselOptions(
-                    scrollDirection: Axis.horizontal,
-                    scrollPhysics: ScrollPhysics(),
-                    autoPlay: false,
-                    enlargeCenterPage: true,
-                    viewportFraction: 1,
-                    aspectRatio: 1,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 30,
-                child: TextButton(
-                  onPressed: () => buttonCarouselController.nextPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.linear),
+              InkWell(
+                onTap: () => buttonCarouselController.nextPage(
+                    duration: Duration(milliseconds: 500),
+                    curve: Curves.linear),
+                child: SizedBox(
+                  width: 50,
                   child: const Icon(
                     Icons.chevron_right,
                     color: Colors.white,
@@ -688,6 +744,8 @@ class CustomGraphicState extends State<CustomGraphic> {
         ),
         SizedBox(
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
                 width: 30,
@@ -697,17 +755,16 @@ class CustomGraphicState extends State<CustomGraphic> {
                   groupValue: _selectedOption,
                   onChanged: (value) {
                     setState(() {
-                      final Random random = Random();
                       double totalQty = 0;
                       double totalQtyService = 0;
                       double totalQtyProduct = 0;
 
-                      tempCircularData.clear();
-                      tempCircularDataService.clear();
-                      tempCircularDataProduct.clear();
+                      _circularData.clear();
+                      _circularDataService.clear();
+                      _circularDataProduct.clear();
 
                       _selectedOption = value!;
-                      widget.dataCircular.forEach((action) {
+                      widget.dataCircular!.forEach((action) {
                         totalQty = totalQty + action.value;
                       });
                       widget.dataCircularProduct!.forEach((action) {
@@ -717,19 +774,22 @@ class CustomGraphicState extends State<CustomGraphic> {
                         totalQtyService = totalQtyService + action.value;
                       });
 
-                      widget.dataCircular.forEach((action) {
+                      widget.dataCircular!.forEach((action) {
                         double persenValue = (action.value / totalQty) * 100;
-                        tempCircularData.add(CircularData(
-                            action.label, persenValue, action.valuePrice!));
+                        _circularData.add(CircularData(
+                          action.label,
+                          persenValue,
+                          action.valuePrice!,
+                        ));
                       });
                       widget.dataCircularService!.forEach((action) {
-                        double persenValue = (action.value / totalQty) * 100;
-                        tempCircularDataService.add(CircularData(
+                        double persenValue = (action.value / totalQtyService) * 100;
+                        _circularDataService.add(CircularData(
                             action.label, persenValue, action.valuePrice!));
                       });
                       widget.dataCircularProduct!.forEach((action) {
-                        double persenValue = (action.value / totalQty) * 100;
-                        tempCircularDataProduct.add(CircularData(
+                        double persenValue = (action.value / totalQtyProduct) * 100;
+                        _circularDataProduct.add(CircularData(
                             action.label, persenValue, action.valuePrice!));
                       });
                     });
@@ -749,7 +809,9 @@ class CustomGraphicState extends State<CustomGraphic> {
                   onChanged: (value) {
                     setState(() {
                       _selectedOption = value!;
-                      tempCircularData = widget.dataCircular.toList();
+                      _circularData = widget.dataCircular!.toList();
+                      _circularDataService= widget.dataCircularService!.toList();
+                      _circularDataProduct= widget.dataCircularProduct!.toList();
                     });
                   },
                 ),
@@ -767,7 +829,7 @@ class CustomGraphicState extends State<CustomGraphic> {
                   onChanged: (value) {
                     setState(() {
                       _selectedOption = value!;
-                      tempCircularData = widget.dataCircular.toList();
+                      _circularData = widget.dataCircular!.toList();
                     });
                   },
                 ),
@@ -778,7 +840,7 @@ class CustomGraphicState extends State<CustomGraphic> {
               ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
@@ -790,23 +852,38 @@ class CustomGraphicState extends State<CustomGraphic> {
           text: widget.title!.toUpperCase(),
           textStyle: TextStyle(color: Colors.white)),
       primaryXAxis: CategoryAxis(
-        isInversed: true,                 // ← urutan label dibalik
+        isInversed: true, // ← urutan label dibalik
         labelRotation: 0,
+        labelStyle: TextStyle(
+          color: Colors.white
+        ),
       ),
-      // primaryYAxis: NumericAxis(
-      //   isInversed: true,
-      // ),
+      primaryYAxis: NumericAxis(
+        labelStyle: TextStyle(
+            color: Colors.white
+        ),
+      ),
       series: <BarSeries<SalesDataWeekly, String>>[
         BarSeries(
           dataSource: widget.data,
           xValueMapper: (SalesDataWeekly data, _) => data.day,
           yValueMapper: (SalesDataWeekly data, _) => data.sales,
+          dataLabelSettings: const DataLabelSettings(
+            isVisible: true,
+            // show labels
+            labelAlignment: ChartDataLabelAlignment.middle,
+            // or: top, middle, bottom
+            textStyle: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-        BarSeries(
-          dataSource: widget.data,
-          xValueMapper: (SalesDataWeekly data, _) => data.day,
-          yValueMapper: (SalesDataWeekly data, _) => 0,
-        )
+        // BarSeries(
+        //   dataSource: widget.data,
+        //   xValueMapper: (SalesDataWeekly data, _) => data.day,
+        //   yValueMapper: (SalesDataWeekly data, _) => 0,
+        // )
       ],
     );
   }

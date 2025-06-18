@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:omega_dashboard/models/SalesDataWeekly.dart';
 import 'package:omega_dashboard/services/tracking_service.dart';
+import '../utils/format_rupiah.dart';
 import '../utils/shared_prefs.dart';
 import 'custom_container.dart';
 
@@ -78,6 +78,7 @@ class _CustomContainerDashboard3State extends State<CustomContainerDashboard3> {
                                       ),
                                       content: TextField(
                                         controller: controllerSales,
+                                        keyboardType: TextInputType.number,
                                       ),
                                       actions: [
                                         Row(
@@ -94,7 +95,18 @@ class _CustomContainerDashboard3State extends State<CustomContainerDashboard3> {
                                                                 .text,
                                                             widget.cabang)
                                                         .then((onValue) {
-
+                                                          if(onValue.status!.toLowerCase() == 'success'){
+                                                            setState(() {
+                                                              widget.staffSales![0] = Text(
+                                                                FormatRupiah.convertToIdr(double.parse(controllerSales
+                                                                    .text).toInt(), 0).toString(),
+                                                                style: const TextStyle(
+                                                                  color: Colors.white,
+                                                                  fontSize: 13,
+                                                                ),
+                                                              );
+                                                            });
+                                                          }
                                                     });
                                                   },
                                                   child: Text("Ya")),

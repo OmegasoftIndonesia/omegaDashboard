@@ -3,6 +3,8 @@ import 'custom_container.dart';
 
 class CustomContainerDashboard extends StatefulWidget {
   final String nominal;
+  final String? product;
+  final String? service;
   final String title;
   final String? subtitle;
 
@@ -10,6 +12,8 @@ class CustomContainerDashboard extends StatefulWidget {
     super.key,
     required this.nominal,
     required this.title,
+    this.product,
+    this.service,
     this.subtitle,
   });
 
@@ -36,6 +40,20 @@ class _CustomContainerDashboardState extends State<CustomContainerDashboard> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            ((widget.title.contains("GROSS SALES") )|| (widget.title.contains("NET SALES")))?Text(
+              "Product: ${widget.product}",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ):SizedBox(),
+            ((widget.title.contains("GROSS SALES"))|| (widget.title.contains("NET SALES")))?Text(
+              "Service: ${widget.service}",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ):SizedBox(),
             const Divider(
               indent: 50,
               endIndent: 50,
