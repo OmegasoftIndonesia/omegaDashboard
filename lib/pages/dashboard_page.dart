@@ -177,6 +177,7 @@ class DashboardPageState extends State<DashboardPage>
           kredit = FormatRupiah.convertToIdr(0, 0);
           debit = FormatRupiah.convertToIdr(0, 0);
           merchantPay = FormatRupiah.convertToIdr(0, 0);
+          klaim = FormatRupiah.convertToIdr(0, 0);
           for (var data in onValue.data!) {
             if (data.kode!.toLowerCase().contains("q001")) {
               grossSales = FormatRupiah.convertToIdr(
@@ -1176,10 +1177,6 @@ class DashboardPageState extends State<DashboardPage>
                             nominal: avgSalesPerTransactionPOS,
                             title: "AVG SALES PER TRANSACTION POS",
                           ),
-                          CustomContainerDashboard(
-                            nominal: avgSalesPerTransactionPOS,
-                            title: "AVG SALES PER TRANSACTION POS",
-                          )
                         ],
                       ),
                     ),

@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:omega_dashboard/models/CircularData.dart';
 import 'package:omega_dashboard/models/SalesDataWeekly.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -22,7 +23,8 @@ class CustomGraphic extends StatefulWidget {
       this.color,
       this.data,
       this.dataCircularProduct,
-      this.dataCircularService, this.dataCircular});
+      this.dataCircularService,
+      this.dataCircular});
 
   @override
   State<CustomGraphic> createState() => CustomGraphicState();
@@ -59,10 +61,12 @@ class CustomGraphicState extends State<CustomGraphic> {
   /// put copies of the incoming lists into the local (non‑static) state
   void _hydrateFromWidget() {
     _dataGrafik = List<SalesDataWeekly>.from(widget.data ?? []);
-    _circularData         = List<CircularData>.from(widget.dataCircular ?? []);
-    _circularDataService  = List<CircularData>.from(widget.dataCircularService ?? []);
-    _circularDataProduct  = List<CircularData>.from(widget.dataCircularProduct ?? []);
-    setState(() {});              // rebuild the charts
+    _circularData = List<CircularData>.from(widget.dataCircular ?? []);
+    _circularDataService =
+        List<CircularData>.from(widget.dataCircularService ?? []);
+    _circularDataProduct =
+        List<CircularData>.from(widget.dataCircularProduct ?? []);
+    setState(() {}); // rebuild the charts
   }
 
   @override
@@ -143,18 +147,43 @@ class CustomGraphicState extends State<CustomGraphic> {
           height: 500,
           child: SfCartesianChart(
             backgroundColor: widget.color,
+            // zoomPanBehavior: ZoomPanBehavior(
+            //   enablePanning: true,
+            //   enablePinching: true,
+            //   zoomMode: ZoomMode.x,
+            // ),
             title: ChartTitle(
                 text: widget.title!.toUpperCase(),
                 textStyle: TextStyle(color: Colors.white, fontSize: 12)),
-            primaryXAxis: CategoryAxis(),
+            primaryXAxis: CategoryAxis(
+              labelIntersectAction: AxisLabelIntersectAction.none,
+              edgeLabelPlacement: EdgeLabelPlacement.shift,
+              labelAlignment: LabelAlignment.center,
+              //labelRotation: 45,
+            ),
+            primaryYAxis: NumericAxis(
+              numberFormat: NumberFormat.decimalPattern('id_ID'),
+            ),
             series: <ColumnSeries<SalesDataWeekly, String>>[
               ColumnSeries<SalesDataWeekly, String>(
                   color: Colors.white,
                   dataSource: _dataGrafik,
                   xValueMapper: (SalesDataWeekly datum, _) => datum.day,
                   yValueMapper: (SalesDataWeekly datum, _) => datum.sales,
-                  dataLabelSettings: const DataLabelSettings(
-                      isVisible: true, color: Colors.white,showZeroValue: false))
+                  dataLabelSettings: DataLabelSettings(
+                    angle: -90,
+                    isVisible: true,
+                    color: Colors.white,
+                    showZeroValue: true,
+                    labelAlignment: ChartDataLabelAlignment.bottom,
+                    textStyle: TextStyle(fontSize: 7),
+                    overflowMode:
+                        OverflowMode.shift,
+                    // builder: (data, point, series, pointIndex,
+                    // seriesIndex){
+                    //
+                    // }
+                  ))
             ],
           ),
         ),
@@ -164,12 +193,21 @@ class CustomGraphicState extends State<CustomGraphic> {
 
   Widget hourlySales() {
     return SfCartesianChart(
+      zoomPanBehavior: ZoomPanBehavior(
+        enablePanning: true,
+        enablePinching: true,
+        zoomMode: ZoomMode.x,
+      ),
       backgroundColor: widget.color,
       title: ChartTitle(
           text: widget.title!.toUpperCase(),
-          textStyle: TextStyle(color: Colors.white)),
+          textStyle: TextStyle(color: Colors.white, fontSize: 12)),
       primaryXAxis: CategoryAxis(
         isVisible: true,
+      ),
+      primaryYAxis: NumericAxis(
+        numberFormat: NumberFormat.decimalPattern('id_ID'),
+        labelRotation: 90,
       ),
       series: <StackedLineSeries<SalesDataWeekly, String>>[
         StackedLineSeries<SalesDataWeekly, String>(
@@ -177,9 +215,11 @@ class CustomGraphicState extends State<CustomGraphic> {
             dataSource: _dataGrafik,
             xValueMapper: (SalesDataWeekly datum, _) => datum.day,
             yValueMapper: (SalesDataWeekly datum, _) => datum.sales,
-            dataLabelSettings:
-                const DataLabelSettings(isVisible: true, color: Colors.white, showZeroValue: false,
-                ))
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
+              color: Colors.white,
+              showZeroValue: true,
+            ))
       ],
     );
   }
@@ -193,6 +233,10 @@ class CustomGraphicState extends State<CustomGraphic> {
       primaryXAxis: const CategoryAxis(
         isVisible: true,
         maximumLabels: 30,
+      ),
+      primaryYAxis: NumericAxis(
+        numberFormat: NumberFormat.decimalPattern('id_ID'
+        ),
       ),
       series: <ColumnSeries<SalesDataWeekly, String>>[
         ColumnSeries<SalesDataWeekly, String>(
@@ -783,12 +827,14 @@ class CustomGraphicState extends State<CustomGraphic> {
                         ));
                       });
                       widget.dataCircularService!.forEach((action) {
-                        double persenValue = (action.value / totalQtyService) * 100;
+                        double persenValue =
+                            (action.value / totalQtyService) * 100;
                         _circularDataService.add(CircularData(
                             action.label, persenValue, action.valuePrice!));
                       });
                       widget.dataCircularProduct!.forEach((action) {
-                        double persenValue = (action.value / totalQtyProduct) * 100;
+                        double persenValue =
+                            (action.value / totalQtyProduct) * 100;
                         _circularDataProduct.add(CircularData(
                             action.label, persenValue, action.valuePrice!));
                       });
@@ -810,8 +856,10 @@ class CustomGraphicState extends State<CustomGraphic> {
                     setState(() {
                       _selectedOption = value!;
                       _circularData = widget.dataCircular!.toList();
-                      _circularDataService= widget.dataCircularService!.toList();
-                      _circularDataProduct= widget.dataCircularProduct!.toList();
+                      _circularDataService =
+                          widget.dataCircularService!.toList();
+                      _circularDataProduct =
+                          widget.dataCircularProduct!.toList();
                     });
                   },
                 ),
@@ -854,14 +902,10 @@ class CustomGraphicState extends State<CustomGraphic> {
       primaryXAxis: CategoryAxis(
         isInversed: true, // ← urutan label dibalik
         labelRotation: 0,
-        labelStyle: TextStyle(
-          color: Colors.white
-        ),
+        labelStyle: TextStyle(color: Colors.white),
       ),
       primaryYAxis: NumericAxis(
-        labelStyle: TextStyle(
-            color: Colors.white
-        ),
+        labelStyle: TextStyle(color: Colors.white),
       ),
       series: <BarSeries<SalesDataWeekly, String>>[
         BarSeries(
